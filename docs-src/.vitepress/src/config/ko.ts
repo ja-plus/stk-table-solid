@@ -23,6 +23,7 @@ export const koConfig = defineConfig({
                 items: [
                     { text: 'Vue 버전', link: 'https://ja-plus.github.io/stk-table-vue/' },
                     { text: 'React 버전', link: 'https://ja-plus.github.io/stk-table-react/' },
+                    { text: 'Svelte 버전', link: 'https://ja-plus.github.io/stk-table-svelte/' },
                 ],
             },
             { text: '스폰서', link: '/ko/main/other/sponsor' },

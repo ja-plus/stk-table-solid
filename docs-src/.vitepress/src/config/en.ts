@@ -23,6 +23,7 @@ export const enConfig = defineConfig({
                 items: [
                     { text: 'Vue', link: 'https://ja-plus.github.io/stk-table-vue/' },
                     { text: 'React', link: 'https://ja-plus.github.io/stk-table-react/' },
+                    { text: 'Svelte', link: 'https://ja-plus.github.io/stk-table-svelte/' },
                 ],
             },
             { text: 'Sponsor', link: '/en/main/other/sponsor' },
