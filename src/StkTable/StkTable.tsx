@@ -779,17 +779,21 @@ export default function StkTable(rawProps: StkTableProps) {
         return col.title || '';
     }
 
-    function getTRProps(row: PrivateRowDT | null | undefined, index: number) {
-        const rowIndex = getAbsoluteRowIndex(index);
+    function getTRProps(row: PrivateRowDT | null | undefined, index: Accessor<number>) {
         const rowKey = rowKeyGen(row);
         const needRowHeight = row?.__EXP_R__ && props.virtual && props.expandConfig?.height;
 
         return {
             id: stkTableId + '-' + rowKey,
             'data-row-key': rowKey,
-            'data-row-i': rowIndex,
+            // 使用 getter 保持响应式：<For> 复用行 DOM 后 index 会变化（树展开/折叠、虚拟滚动），data-row-i 必须跟随更新，
+            // 否则事件委托（onCellClick 等）会按过期索引取行导致取不到行
+            get 'data-row-i'() {
+                return getAbsoluteRowIndex(index());
+            },
             // 使用 getter 保持响应式：SolidJS spread 包裹在 createRenderEffect 中，getter 读取的信号变化时会重新赋值 class/style
             get class() {
+                const rowIndex = getAbsoluteRowIndex(index());
                 const classList = [props.rowClassName(row, rowIndex), row?.__EXP__ ? 'expanded' : '', row?.__EXP_R__ ? 'expanded-row' : ''];
                 if (currentRowKey() === rowKey || row === currentRow()) {
                     classList.push('active');
@@ -1490,7 +1494,7 @@ export default function StkTable(rawProps: StkTableProps) {
                             </tr>
                         </Show>
                         <For each={virtual_dataSourcePart()}>
-                            {(row, rowIndex) => renderBodyRow(row, rowIndex())}
+                            {(row, rowIndex) => renderBodyRow(row, rowIndex)}
                         </For>
                         <Show when={!isExperimentalScrollY()}>
                             <Show when={virtual_on() && !isSRBRActive()}>
@@ -1581,7 +1585,7 @@ export default function StkTable(rawProps: StkTableProps) {
         );
     }
 
-    function renderBodyRow(row: DT, rowIndex: number) {
+    function renderBodyRow(row: DT, rowIndex: Accessor<number>) {
         const trProps = getTRProps(row, rowIndex);
         return (
             <tr {...trProps}>
@@ -1611,11 +1615,11 @@ export default function StkTable(rawProps: StkTableProps) {
         );
     }
 
-    function renderBodyCell(row: DT, col: PrivateStkTableColumn<DT>, rowIndex: number) {
+    function renderBodyCell(row: DT, col: PrivateStkTableColumn<DT>, rowIndex: Accessor<number>) {
         if (col.__VT_C_SP__) {
             return <td class="vt-x-spacer" colspan={col.__VT_C_SP__}></td>;
         }
-        const tdProps = getTDProps(row, col, rowIndex, col.__LF_S__ ?? 0);
+        const tdProps = getTDProps(row, col, rowIndex(), col.__LF_S__ ?? 0);
         // shouldHideCell 需响应式：虚拟滚动窗口变化时被合并覆盖的单元格要随之隐藏/恢复
         return (
             <Show when={!shouldHideCell(row, col)}>
@@ -1629,7 +1633,10 @@ export default function StkTable(rawProps: StkTableProps) {
                             tabindex: '-1',
                             col,
                             row,
-                            rowIndex: getAbsoluteRowIndex(rowIndex),
+                            // 使用 getter 保持响应式：<For> 复用行后 index 会变化
+                            get rowIndex() {
+                                return getAbsoluteRowIndex(rowIndex());
+                            },
                             colIndex: col.__LF_S__ ?? 0,
                             // 使用 getter 保持响应式（对齐 Vue render 函数重新求值行为）
                             get cellValue() {
@@ -1643,7 +1650,7 @@ export default function StkTable(rawProps: StkTableProps) {
                             },
                             // 对齐 Vue：stkFoldIcon 点击由 tbody 委托的 onCellClick 统一处理（避免与直接处理器双重 toggle）
                             stkFoldIcon: <TriangleIcon />,
-                            stkDragIcon: <DragHandle onDragStart={e => onTrDragStart(e, getAbsoluteRowIndex(rowIndex))} />,
+                            stkDragIcon: <DragHandle onDragStart={e => onTrDragStart(e, getAbsoluteRowIndex(rowIndex()))} />,
                         })}
                     </Show>
                 </td>
@@ -1651,7 +1658,7 @@ export default function StkTable(rawProps: StkTableProps) {
         );
     }
 
-    function renderDefaultCell(row: DT, col: PrivateStkTableColumn<DT>, rowIndex: number) {
+    function renderDefaultCell(row: DT, col: PrivateStkTableColumn<DT>, rowIndex: Accessor<number>) {
         if (!col.type) {
             return (
                 <div class="table-cell-wrapper" tabindex="-1" title={row[col.dataIndex] || ''}>
@@ -1662,7 +1669,7 @@ export default function StkTable(rawProps: StkTableProps) {
         if (col.type === 'seq') {
             return (
                 <div class="table-cell-wrapper" tabindex="-1">
-                    {(props.seqConfig.startIndex || 0) + getAbsoluteRowIndex(rowIndex) + 1}
+                    {(props.seqConfig.startIndex || 0) + getAbsoluteRowIndex(rowIndex()) + 1}
                 </div>
             );
         }
@@ -1677,7 +1684,7 @@ export default function StkTable(rawProps: StkTableProps) {
         return (
             <div class="table-cell-wrapper" tabindex="-1" title={row[col.dataIndex] || ''}>
                 <Show when={col.type === 'dragRow'}>
-                    <DragHandle onDragStart={e => onTrDragStart(e, getAbsoluteRowIndex(rowIndex))} />
+                    <DragHandle onDragStart={e => onTrDragStart(e, getAbsoluteRowIndex(rowIndex()))} />
                 </Show>
                 <Show when={col.type === 'expand'}>
                     <TriangleIcon />
