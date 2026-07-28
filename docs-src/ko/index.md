@@ -45,7 +45,9 @@ features:
   - icon: 🔑
     title: 완전한 타입 정의 API
     details: 유연한 API 와 완전한 TypeScript 타입 정의.
-  - icon: 💙
+  - icon:
+      src: /assets/solidjs.svg
+      alt: SolidJS
     title: SolidJS 기반
     details: SolidJS 시그널 기반, 세분된 반응형 업데이트, 궁극의 성능.
 ---

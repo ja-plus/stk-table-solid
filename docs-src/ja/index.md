@@ -45,7 +45,9 @@ features:
   - icon: 🔑
     title: 完全型付け API
     details: 柔軟な API と完全な TypeScript 型定義。
-  - icon: 💙
+  - icon:
+      src: /assets/solidjs.svg
+      alt: SolidJS
     title: SolidJS ベース
     details: SolidJS シグナル駆動、細粒度リアクティブ更新、究極のパフォーマンス。
 ---

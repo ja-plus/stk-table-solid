@@ -45,7 +45,9 @@ features:
   - icon: 🔑
     title: Fully Typed API
     details: Flexible API with complete TypeScript types.
-  - icon: 💙
+  - icon:
+      src: /assets/solidjs.svg
+      alt: SolidJS
     title: Based on SolidJS
     details: Powered by SolidJS signals, fine-grained reactive updates, ultimate performance.
 ---

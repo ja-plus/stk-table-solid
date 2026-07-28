@@ -45,7 +45,9 @@ features:
   - icon: 🔑
     title: 完全类型化的API
     details: 灵活的 API 和完整的 TypeScript 类型。
-  - icon: 💙
+  - icon:
+      src: /assets/solidjs.svg
+      alt: SolidJS
     title: 基于 SolidJS
     details: SolidJS 信号驱动，细粒度响应式更新，极致性能。
 ---
