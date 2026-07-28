@@ -1,0 +1,51 @@
+---
+# https://vitepress.dev/reference/default-theme-home-page
+layout: home
+
+hero:
+  name: "Stk Table Solid"
+  text: "High Performance Virtual Table"
+  tagline: Real-time big data, why use canvas? Smooth experience is here!
+  image:
+    src: /assets/logo.svg
+    alt: Stk Table Solid
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /en/main/start/start
+    - theme: alt
+      text: Demos
+      link: /en/demos/huge-data
+    - theme: alt
+      text: GitHub⭐
+      link: https://github.com/ja-plus/stk-table-solid
+    - theme: alt
+      text: Vue Version
+      link: https://ja-plus.github.io/stk-table-vue/
+    - theme: alt
+      text: React Version
+      link: https://ja-plus.github.io/stk-table-react/
+    - theme: alt
+      text: Svelte Version
+      link: https://ja-plus.github.io/stk-table-svelte/
+
+features:
+  - icon: 💡
+    title: Lightweight & Easy to Use
+    details: Fixed headers and columns based on position:sticky, making virtual list height control more convenient.
+  - icon: ⚡️
+    title: High Performance
+    details: Supports horizontal, vertical, and variable height virtual lists. Focused on real-time data tables, quote tables, and dynamic tables.
+  - icon: 🔩
+    title: Flexible
+    details: DOM-based, configurable custom cells, no more bloated slots.
+  - icon: 🛠️
+    title: Row/Cell Highlighting
+    details: Encapsulates methods for highlighting rows and cells. Used for data update notifications.
+  - icon: 🔑
+    title: Fully Typed API
+    details: Flexible API with complete TypeScript types.
+  - icon: 💙
+    title: Based on SolidJS
+    details: Powered by SolidJS signals, fine-grained reactive updates, ultimate performance.
+---

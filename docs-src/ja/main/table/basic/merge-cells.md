@@ -1,0 +1,58 @@
+# セルマージ
+
+`StkTableColumns['mergeCells']` 関数を通じてマージするセルを指定します。
+
+```ts
+function mergeCells(data: { 
+    row: any,
+    col: StkTableColumn<any>,
+    rowIndex: number,
+    colIndex: number
+}): {
+    /** 列合并数量 */
+    colspan:number, 
+    /** 行合并数量 */
+    rowspan:number
+}
+```
+
+`{ colspan: number, rowspan: number }` を返してマージするセル数を示し、`colspan` は列用、`rowspan` は行用です。
+
+## 列マージ
+<demo solid="basic/merge-cells/MergeCellsCol.tsx" github="https://github.com/ja-plus/stk-table-solid/tree/master/docs-demo/basic/merge-cells/MergeCellsCol.tsx"></demo>
+
+## 行マージ
+<demo solid="basic/merge-cells/MergeCellsRow.tsx" github="https://github.com/ja-plus/stk-table-solid/tree/master/docs-demo/basic/merge-cells/MergeCellsRow.tsx"></demo>
+
+::: tip
+テーブルデータが変更されると、`mergeCells` 関数が再度呼び出されて再計算されます。
+:::
+
+### 仮想リストでの行マージ
+#### シンプルマージ
+<demo solid="basic/merge-cells/MergeCellsRowVirtual/index.tsx" github="https://github.com/ja-plus/stk-table-solid/tree/master/docs-demo/basic/merge-cells/MergeCellsRowVirtual/index.tsx"></demo>
+コードでは、行の `rowspan` フィールドをマージ数として使用するように `mergeCells` 関数が定義されています。
+```ts
+function mergeCells({ row, col }: { row: any, col: StkTableColumn<any> }) {
+    if (!row.rowspan) return;
+    return { rowspan: row.rowspan[col.dataIndex] || 1 };
+}
+```
+これにより、`mergeCells` 関数で追加の判断をせず、データに直接マージ数を定義できます。
+```ts
+{
+    id: '1-1-1', continent: 'Asia', country: 'China', province: 'Beijing',
+    rowspan: { continent: 12, country: 6, }
+}
+```
+::: tip パフォーマンス
+仮想リストモードでは、すべてのマージセル（mergeCells関数）が走査されるため、パフォーマンスにある程度の影響を与える可能性があります。
+:::
+::: warning 注意
+rowspanが非常に大きい場合（例如：1000行）、マージセルはそれでもカバーするすべての行をレンダリングしますTherefore, rowspan is not recommended to be very large.
+
+この機能はまだ **横方向仮想リスト** をサポートしていません。
+:::
+
+#### 不規則マージ
+<demo solid="basic/merge-cells/MergeCellsRowVirtual/Special.tsx" github="https://github.com/ja-plus/stk-table-solid/tree/master/docs-demo/basic/merge-cells/MergeCellsRowVirtual/Special.tsx"></demo>

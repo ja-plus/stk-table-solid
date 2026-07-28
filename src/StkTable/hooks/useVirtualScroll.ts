@@ -1,0 +1,696 @@
+import { createSignal, createMemo, type Accessor } from 'solid-js';
+import { DEFAULT_ROW_HEIGHT, DEFAULT_TABLE_HEIGHT, DEFAULT_TABLE_WIDTH } from '../const';
+import { AutoRowHeightConfig, PrivateRowDT, PrivateStkTableColumn, RowKeyGen, StkTableColumn, UniqKey } from '../types';
+import { ScrollbarOptions } from './useScrollbar';
+import { binarySearch } from '../utils';
+import { getCalculatedColWidth } from '../utils/constRefUtils';
+
+/** 暂存纵向虚拟滚动的数据 */
+export type VirtualScrollStore = {
+    /** 容器高度 */
+    containerHeight: number;
+    /** 一页的大小 */
+    pageSize: number;
+    /** 数组开始位置 */
+    startIndex: number;
+    /** 数组结束位置 */
+    endIndex: number;
+    /** 行高 */
+    rowHeight: number;
+    /** 表格定位上边距 */
+    offsetTop: number;
+    /** 纵向滚动条位置，用于判断是横向滚动还是纵向 */
+    scrollTop: number;
+    /** 总滚动高度 */
+    scrollHeight: number;
+    translateY: number;
+};
+/** 暂存横向虚拟滚动的数据 */
+export type VirtualScrollXStore = {
+    /** 父容器宽度 */
+    containerWidth: number;
+    /** 滚动容器的宽度 */
+    scrollWidth: number;
+    /** 开始位置 */
+    startIndex: number;
+    /** 结束始位置 */
+    endIndex: number;
+    /** 表格定位左边距 */
+    offsetLeft: number;
+    /** 横向滚动位置，用于判断是横向滚动还是纵向 */
+    scrollLeft: number;
+};
+
+/** 列宽缓存项 */
+type ColWidthCacheItem = { index: number; cumWidth: number };
+/** 左侧固定列缓存项 */
+type LeftFixedColCacheItem = { index: number; width: number };
+/** 列宽缓存 */
+type ColWidthCache<T> = { cols: T[] | null; nonFixedCols: ColWidthCacheItem[]; leftFixedCols: LeftFixedColCacheItem[] };
+
+/** 横向虚拟滚动列宽缓存，避免每次滚动都 O(n) 构建 */
+function useColWidthCache<T extends { fixed?: StkTableColumn<PrivateRowDT>['fixed'] }>(getColWidth: (col: T) => number) {
+    let colWidthCache: ColWidthCache<T> = { cols: null, nonFixedCols: [], leftFixedCols: [] };
+
+    function build(cols: T[]): ColWidthCache<T> {
+        const nonFixedCols: ColWidthCacheItem[] = [];
+        const leftFixedCols: LeftFixedColCacheItem[] = [];
+        let cumWidth = 0;
+        for (let i = 0; i < cols.length; i++) {
+            const col = cols[i];
+            const w = getColWidth(col);
+            if (col.fixed === 'left') {
+                leftFixedCols.push({ index: i, width: w });
+                continue;
+            }
+            cumWidth += w;
+            nonFixedCols.push({ index: i, cumWidth });
+        }
+        colWidthCache = { cols, nonFixedCols, leftFixedCols };
+        return colWidthCache;
+    }
+
+    function get(cols: T[]): ColWidthCache<T> {
+        if (colWidthCache.cols === cols) return colWidthCache;
+        return build(cols);
+    }
+
+    function clear() {
+        colWidthCache.cols = null;
+    }
+
+    return [get, clear] as const;
+}
+
+/** vue2 优化滚动回收延时 */
+const VUE2_SCROLL_TIMEOUT_MS = 200;
+
+/**
+ * virtual scroll
+ * @returns
+ */
+export function useVirtualScroll(
+    props: any,
+    tableContainerRef: Accessor<HTMLElement | undefined>,
+    trRef: Accessor<HTMLTableRowElement[] | undefined>,
+    dataSourceCopy: Accessor<PrivateRowDT[]>,
+    tableHeaderLast: Accessor<PrivateStkTableColumn<PrivateRowDT>[]>,
+    tableHeaders: Accessor<PrivateStkTableColumn<PrivateRowDT>[][]>,
+    rowKeyGen: RowKeyGen,
+    maxRowSpan: Map<UniqKey, number>,
+    scrollbarOptions: Accessor<Required<ScrollbarOptions>>,
+    isExperimentalScrollY: Accessor<boolean | undefined>,
+) {
+    const tableHeaderHeight = createMemo(() => props.headerRowHeight * tableHeaders().length);
+
+    const [virtualScroll, setVirtualScroll] = createSignal<VirtualScrollStore>({
+        containerHeight: 0,
+        rowHeight: props.rowHeight,
+        pageSize: 0,
+        startIndex: 0,
+        endIndex: 0,
+        offsetTop: 0,
+        scrollTop: 0,
+        scrollHeight: 0,
+        translateY: 0,
+    });
+
+    // TODO: init pageSize
+
+    const [virtualScrollX, setVirtualScrollX] = createSignal<VirtualScrollXStore>({
+        containerWidth: 0,
+        scrollWidth: 0,
+        startIndex: 0,
+        endIndex: 0,
+        offsetLeft: 0,
+        scrollLeft: 0,
+    });
+
+    const [getColWidthCache, clearColWidthCache] = useColWidthCache<PrivateStkTableColumn<PrivateRowDT>>(getCalculatedColWidth);
+
+    const hasExpandCol = createMemo(() => {
+        return tableHeaderLast().some(col => col.type === 'expand');
+    });
+
+    /** 是否虚拟滚动标志 */
+    const virtual_on = createMemo(() => {
+        return props.virtual && dataSourceCopy().length > virtualScroll().pageSize;
+    });
+
+    const virtual_dataSourcePart = createMemo(() => {
+        if (!virtual_on()) return dataSourceCopy();
+        const { startIndex, endIndex } = virtualScroll();
+        return dataSourceCopy().slice(startIndex, endIndex + 1);
+    });
+
+    const virtual_offsetBottom = createMemo(() => {
+        if (!virtual_on()) return 0;
+        const { startIndex, endIndex } = virtualScroll();
+        const dataSourceCopyValue = dataSourceCopy();
+        const rowHeight = getRowHeightFn()();
+        if (props.autoRowHeight) {
+            let offsetBottom = 0;
+            for (let i = endIndex + 1; i < dataSourceCopyValue.length; i++) {
+                const rowHeight = getRowHeightFn()(dataSourceCopyValue[i]);
+                offsetBottom += rowHeight;
+            }
+            return offsetBottom;
+        }
+
+        return (dataSourceCopyValue.length - startIndex - virtual_dataSourcePart().length) * rowHeight;
+    });
+
+    const virtualX_on = createMemo(() => {
+        return (
+            props.virtualX &&
+            tableHeaderLast().reduce((sum, col) => (sum += getCalculatedColWidth(col)), 0) > virtualScrollX().containerWidth + 100
+        );
+    });
+
+    /** 是否多级表头 */
+    const isMultiLevelHeader = createMemo(() => tableHeaders().length > 1);
+
+    /**
+     * 多级表头横向虚拟滚动参数：以顶层列组为单位计算开始/结束位置。
+     * - 只有整个顶层组完全滚出视口时才移除（避免 colSpan 变化导致抖动）。
+     * - 单级表头时退化为与 tbody 相同的参数。
+     */
+    const theadVirtualX = createMemo(() => {
+        if (!virtualX_on() || !isMultiLevelHeader()) {
+            return {
+                startIndex: virtualScrollX().startIndex,
+                endIndex: virtualScrollX().endIndex,
+                offsetLeft: virtualScrollX().offsetLeft,
+            };
+        }
+        const { scrollLeft, containerWidth } = virtualScrollX();
+        const topLevelCols = tableHeaders()[0];
+        const totalLeafCount = tableHeaderLast().length;
+
+        let theadStartIndex = 0;
+        let theadEndIndex = totalLeafCount;
+        let theadOffsetLeft = 0;
+        let cumLeft = 0;
+        let foundStart = false;
+
+        for (let i = 0, len = topLevelCols.length; i < len; i++) {
+            const col = topLevelCols[i];
+            if (col.fixed === 'left' || col.fixed === 'right') continue;
+
+            const groupWidth = col.__W__ || getCalculatedColWidth(col);
+            const groupRight = cumLeft + groupWidth;
+
+            if (!foundStart && groupRight > scrollLeft) {
+                foundStart = true;
+                theadStartIndex = col.__LF_S__ ?? 0;
+                theadOffsetLeft = cumLeft;
+            }
+            cumLeft = groupRight;
+
+            theadEndIndex = col.__LF_E__ ?? totalLeafCount;
+            if (foundStart && groupRight >= scrollLeft + containerWidth) {
+                // find end
+                break;
+            }
+        }
+
+        if (!foundStart) {
+            theadStartIndex = totalLeafCount;
+            theadOffsetLeft = cumLeft;
+        }
+
+        return { startIndex: theadStartIndex, endIndex: theadEndIndex, offsetLeft: theadOffsetLeft };
+    });
+
+    const virtualX_columnPart = createMemo(() => {
+        const tableHeaderLastValue = tableHeaderLast();
+        if (virtualX_on()) {
+            const { startIndex, endIndex } = virtualScrollX();
+            // 将索引钳制到列数组范围内，防止列数减少时越界
+            const maxIndex = tableHeaderLastValue.length;
+            const validEndIndex = Math.min(endIndex, maxIndex);
+            const validStartIndex = Math.min(startIndex, maxIndex);
+
+            // 多级表头：分离左/右固定列，插入 spacer 标记实现对齐
+            if (isMultiLevelHeader()) {
+                const leftFixedCols: PrivateStkTableColumn<PrivateRowDT>[] = [];
+                const rightFixedCols: PrivateStkTableColumn<PrivateRowDT>[] = [];
+                const visibleCols: PrivateStkTableColumn<PrivateRowDT>[] = [];
+                for (let i = 0; i < tableHeaderLastValue.length; i++) {
+                    const col = tableHeaderLastValue[i];
+                    if (col.fixed === 'right') {
+                        rightFixedCols.push(col);
+                    } else if (col.fixed === 'left') {
+                        leftFixedCols.push(col);
+                    } else if (i >= validStartIndex && i < validEndIndex) {
+                        visibleCols.push(col);
+                    }
+                }
+
+                const result: PrivateStkTableColumn<PrivateRowDT>[] = [];
+                result.push(...leftFixedCols);
+
+                // left spacer：theadStart ~ tbodyStart 之间非 fixed:left 的叶子列数
+                const theadStart = theadVirtualX().startIndex;
+                const leftSpacerColspan = Math.max(0, startIndex - theadStart);
+                if (leftSpacerColspan) {
+                    result.push({ __VT_C_SP__: leftSpacerColspan } as PrivateStkTableColumn<PrivateRowDT>);
+                }
+
+                result.push(...visibleCols);
+
+                // right spacer：tbodyEnd ~ theadEnd 之间的非 fixed:right 列数
+                const rightSpacerColspan = Math.max(0, theadVirtualX().endIndex - endIndex);
+                if (rightSpacerColspan) {
+                    result.push({ __VT_C_SP__: rightSpacerColspan } as PrivateStkTableColumn<PrivateRowDT>);
+                }
+                result.push(...rightFixedCols);
+
+                return result;
+            }
+
+            // 单级表头：保持原有重排逻辑（向后兼容）
+            const leftCols: PrivateStkTableColumn<PrivateRowDT>[] = [];
+            const rightCols: PrivateStkTableColumn<PrivateRowDT>[] = [];
+
+            // 左侧固定列，如果在左边不可见区。则需要拿出来放在前面
+            for (let i = 0; i < validStartIndex; i++) {
+                const col = tableHeaderLastValue[i];
+                if (col?.fixed === 'left') leftCols.push(col);
+            }
+            // 右侧固定列，如果在右边不可见区。则需要拿出来放在后面
+            for (let i = validEndIndex; i < tableHeaderLastValue.length; i++) {
+                const col = tableHeaderLastValue[i];
+                if (col?.fixed === 'right') rightCols.push(col);
+            }
+
+            const mainColumns = tableHeaderLastValue.slice(validStartIndex, validEndIndex);
+            return leftCols.concat(mainColumns).concat(rightCols);
+        }
+        return tableHeaderLastValue;
+    });
+
+    /**
+     * 表头横向虚拟滚动：
+     * - 单级表头：最后一行使用 virtualX_columnPart，其他行原样返回。
+     * - 多级表头：按顶层组粒度过滤（整个组滚出才移除），保持 colSpan 稳定。
+     */
+    const virtualX_tableHeaders = createMemo(() => {
+        if (!virtualX_on()) return tableHeaders();
+        if (isMultiLevelHeader()) {
+            const { startIndex, endIndex } = theadVirtualX();
+            return tableHeaders().map(row => {
+                return row.filter(col => {
+                    if (col.fixed === 'left' || col.fixed === 'right') return true;
+                    const leafStart = col.__LF_S__ ?? 0;
+                    const leafEnd = col.__LF_E__ ?? leafStart + 1;
+                    return leafEnd > startIndex && leafStart < endIndex;
+                });
+            });
+        }
+        // 单级：最后一行用 virtualX_columnPart
+        const headers = tableHeaders();
+        return headers.map((row, i) => (i === headers.length - 1 ? virtualX_columnPart() : row));
+    });
+
+    /** 展开行 colspan：虚拟滚动时等于所有 td 元素数量（含 spacer）之和 */
+    const expandRowColspan = createMemo(() => {
+        if (!virtualX_on()) return tableHeaderLast().length;
+        const spacers = virtualX_columnPart().filter(c => c.__VT_C_SP__);
+        // 2 = vt-x-left + vt-x-right
+        // 每个 spacer 项占 1 个位置，colspan > 1 时额外增加 (colspan - 1)
+        return 2 + virtualX_columnPart().length + spacers.reduce((sum, s) => sum + Math.max(0, (s.__VT_C_SP__ ?? 0) - 1), 0);
+    });
+
+    const virtualX_offsetRight = createMemo(() => {
+        if (!virtualX_on()) return 0;
+        // 多级表头使用 theadEndIndex，单级使用 body endIndex
+        const endIndex = isMultiLevelHeader() ? theadVirtualX().endIndex : virtualScrollX().endIndex;
+        let width = 0;
+        const tableHeaderLastValue = tableHeaderLast();
+        for (let i = endIndex; i < tableHeaderLastValue.length; i++) {
+            const col = tableHeaderLastValue[i];
+            if (col.fixed !== 'right') {
+                width += getCalculatedColWidth(col);
+            }
+        }
+        return width;
+    });
+
+    const getRowHeightFn = createMemo(() => {
+        const rowHeight = props.rowHeight || DEFAULT_ROW_HEIGHT;
+        let rowHeightFn: (row?: PrivateRowDT) => number = () => rowHeight;
+        if (props.autoRowHeight) {
+            const tempRowHeightFn = rowHeightFn;
+            rowHeightFn = (row?: PrivateRowDT) => getAutoRowHeight(row) || tempRowHeightFn(row);
+        }
+        if (hasExpandCol()) {
+            const expandedRowHeight = props.expandConfig?.height;
+            const tempRowHeightFn = rowHeightFn;
+            rowHeightFn = (row?: PrivateRowDT) => (row && row.__EXP_R__ && expandedRowHeight) || tempRowHeightFn(row);
+        }
+        return rowHeightFn;
+    });
+
+    /**
+     * 初始化虚拟滚动参数
+     * @param {number} [height] 虚拟滚动的高度
+     */
+    function initVirtualScroll(height?: number) {
+        initVirtualScrollY(height);
+        initVirtualScrollX();
+    }
+
+    /**
+     * 初始化Y虚拟滚动参数
+     * @param {number} [height] 虚拟滚动的高度
+     */
+    function initVirtualScrollY(height?: number) {
+        if (height !== void 0 && typeof height !== 'number') {
+            console.warn('initVirtualScrollY: height must be a number');
+            height = 0;
+        }
+        const { clientHeight, scrollHeight } = tableContainerRef() || {};
+        // 当 isExperimentalScrollY 为 true 时，DOM 的 scrollTop 始终为 0（纵向滚动通过 transform 模拟）
+        // 此时应该使用 virtualScroll 中保存的 scrollTop 值
+        let scrollTop = isExperimentalScrollY() ? virtualScroll().scrollTop : tableContainerRef()?.scrollTop || 0;
+
+        const rowHeight = getRowHeightFn()();
+        const containerHeight = height || clientHeight || DEFAULT_TABLE_HEIGHT;
+        const { headless } = props;
+        let pageSize = Math.ceil(containerHeight / rowHeight);
+        if (!headless) {
+            /** 表头高度占几行表体高度数 */
+            const headerToBodyRowHeightCount = Math.floor(tableHeaderHeight() / rowHeight);
+            pageSize -= headerToBodyRowHeightCount; //减去表头行数
+        }
+        const maxScrollTop = Math.max(0, dataSourceCopy().length * rowHeight + tableHeaderHeight() - containerHeight);
+        if (scrollTop > maxScrollTop) {
+            /** fix： 滚动条不在顶部时，表格数据变少，导致滚动条位置有误 */
+            scrollTop = maxScrollTop;
+        }
+        setVirtualScroll(prev => ({ ...prev, containerHeight, pageSize, scrollHeight }));
+        updateVirtualScrollY(scrollTop);
+    }
+
+    function initVirtualScrollX() {
+        const { clientWidth, scrollLeft, scrollWidth } = tableContainerRef() || {};
+        setVirtualScrollX(prev => ({
+            ...prev,
+            containerWidth: clientWidth || DEFAULT_TABLE_WIDTH,
+            scrollWidth: scrollWidth || DEFAULT_TABLE_WIDTH,
+        }));
+        updateVirtualScrollX(scrollLeft);
+    }
+
+    let vue2ScrollYTimeout: null | number = null;
+
+    /**
+     * every row actual height.
+     * FIXME: use a weak map instead of a plain map
+     */
+    const autoRowHeightMap = new Map<string, number>();
+    /** 如果行高度有变化，则要调用此方法清除保存的行高 */
+    function setAutoHeight(rowKey: UniqKey, height?: number | null) {
+        const key = String(rowKey);
+        if (!height) {
+            autoRowHeightMap.delete(key);
+        } else {
+            autoRowHeightMap.set(key, height);
+        }
+    }
+
+    function clearAllAutoHeight() {
+        autoRowHeightMap.clear();
+    }
+
+    function getAutoRowHeight(row?: PrivateRowDT) {
+        if (!row) return;
+        const rowKey = rowKeyGen(row);
+        const storedHeight = autoRowHeightMap.get(String(rowKey));
+        if (storedHeight) {
+            return storedHeight;
+        }
+        const expectedHeight: AutoRowHeightConfig<PrivateRowDT>['expectedHeight'] = props.autoRowHeight?.expectedHeight;
+        if (expectedHeight) {
+            if (typeof expectedHeight === 'function') {
+                return expectedHeight(row);
+            } else {
+                return expectedHeight;
+            }
+        }
+    }
+
+    /** 通过滚动条位置，计算虚拟滚动的参数 */
+    function updateVirtualScrollY(sTop = 0) {
+        const { pageSize, scrollTop, startIndex: oldStartIndex, endIndex: oldEndIndex, containerHeight } = virtualScroll();
+        // 先更新滚动条位置记录，其他地方有依赖。(stripe 时ArrowUp/Down滚动依赖)
+
+        const dataSourceCopyTemp = dataSourceCopy();
+        const dataLength = dataSourceCopyTemp.length;
+        const rowHeight = getRowHeightFn()();
+
+        const vsValue: any = {};
+        const scrollHeight = dataLength * rowHeight + tableHeaderHeight();
+        const { enabled: scrollbarEnable } = scrollbarOptions();
+        if (scrollbarEnable) {
+            vsValue.scrollHeight = scrollHeight;
+            if (isExperimentalScrollY()) {
+                let maxTop: number;
+                sTop = sTop < 0 ? 0 : sTop < (maxTop = scrollHeight - containerHeight) ? sTop : maxTop;
+                vsValue.translateY = props.scrollRowByRow ? 0 : -(sTop % rowHeight);
+            }
+        }
+        vsValue.scrollTop = sTop;
+
+        setVirtualScroll(prev => ({ ...prev, ...vsValue }));
+
+        if (!virtual_on()) {
+            // github #34 init
+            setVirtualScroll(prev => ({ ...prev, startIndex: 0, endIndex: 0, offsetTop: 0 }));
+            return;
+        }
+
+        const { autoRowHeight, stripe, optimizeVue2Scroll } = props;
+        // const dataLength = dataSourceCopyTemp.length;
+
+        let startIndex = 0;
+        let endIndex = dataLength;
+        let autoRowHeightTop = 0;
+        if (autoRowHeight || hasExpandCol()) {
+            if (autoRowHeight && trRef()) {
+                // Batch DOM measurements for better performance
+                const trElements = trRef()!;
+                for (let i = 0, len = trElements.length; i < len; i++) {
+                    const tr = trElements[i];
+                    const rowKey = tr.dataset.rowKey;
+                    if (!rowKey || autoRowHeightMap.has(rowKey)) continue;
+                    autoRowHeightMap.set(rowKey, tr.offsetHeight);
+                }
+            }
+            // calculate startIndex
+            for (let i = 0; i < dataLength; i++) {
+                const height = getRowHeightFn()(dataSourceCopyTemp[i]);
+                autoRowHeightTop += height;
+                if (autoRowHeightTop >= sTop) {
+                    startIndex = i;
+                    autoRowHeightTop -= height;
+                    break;
+                }
+            }
+            // calculate endIndex
+            let containerHeightSum = 0;
+            for (let i = startIndex + 1; i < dataLength; i++) {
+                containerHeightSum += getRowHeightFn()(dataSourceCopyTemp[i]);
+                if (containerHeightSum >= containerHeight) {
+                    endIndex = i;
+                    break;
+                }
+            }
+        } else {
+            startIndex = Math.floor(sTop / rowHeight);
+            endIndex = startIndex + pageSize;
+            if (startIndex === oldStartIndex && endIndex === oldEndIndex) {
+                // Not change: not update
+                return;
+            }
+        }
+
+        if (maxRowSpan.size) {
+            // fix startIndex：查找是否有合并行跨越当前startIndex
+            let correctedStartIndex = startIndex;
+            let correctedEndIndex = endIndex;
+
+            for (let i = 0; i < startIndex; i++) {
+                const row = dataSourceCopyTemp[i];
+                if (!row) continue;
+                const spanEndIndex = i + (maxRowSpan.get(rowKeyGen(row)) || 1);
+                if (spanEndIndex > startIndex) {
+                    // 找到跨越startIndex的合并行，将startIndex修正为合并行的起始索引
+                    correctedStartIndex = i;
+                    if (spanEndIndex > endIndex) {
+                        // 合并行跨越了整个可视区
+                        correctedEndIndex = spanEndIndex;
+                    }
+                    break;
+                }
+            }
+
+            // fix endIndex：查找是否有合并行跨越当前endIndex
+            for (let i = correctedStartIndex; i < endIndex; i++) {
+                const row = dataSourceCopyTemp[i];
+                if (!row) continue;
+                const spanEndIndex = i + (maxRowSpan.get(rowKeyGen(row)) || 1);
+                if (spanEndIndex > correctedEndIndex) {
+                    // 找到跨越endIndex的合并行，将endIndex修正为合并行的结束索引
+                    correctedEndIndex = Math.max(spanEndIndex, correctedEndIndex);
+                }
+            }
+
+            startIndex = correctedStartIndex;
+            endIndex = correctedEndIndex;
+        }
+
+        if (stripe && !isExperimentalScrollY() && startIndex > 0 && startIndex % 2) {
+            // 斑马纹情况下，每滚动偶数行才加载。防止斑马纹错位。
+            startIndex -= 1; // 奇数-1变成偶数
+            if (autoRowHeight || hasExpandCol()) {
+                const height = getRowHeightFn()(dataSourceCopyTemp[startIndex]);
+                autoRowHeightTop -= height;
+            }
+        }
+
+        startIndex = Math.max(0, startIndex);
+        endIndex = Math.min(endIndex, dataLength);
+
+        if (startIndex >= endIndex) {
+            // fallback
+            startIndex = endIndex - pageSize;
+        }
+
+        if (vue2ScrollYTimeout) {
+            window.clearTimeout(vue2ScrollYTimeout);
+        }
+
+        let offsetTop = 0;
+        if (autoRowHeight || hasExpandCol()) {
+            offsetTop = autoRowHeightTop;
+        } else {
+            offsetTop = startIndex * rowHeight;
+        }
+
+        /**
+         * en:  If scroll faster than one page, roll back
+         */
+        if (!optimizeVue2Scroll || sTop <= scrollTop || Math.abs(oldStartIndex - startIndex) >= pageSize) {
+            // scroll up
+            setVirtualScroll(prev => ({ ...prev, startIndex, endIndex, offsetTop }));
+        } else {
+            // vue2 scroll down optimize
+            setVirtualScroll(prev => ({ ...prev, endIndex }));
+            vue2ScrollYTimeout = window.setTimeout(() => {
+                setVirtualScroll(prev => ({ ...prev, startIndex, offsetTop }));
+            }, VUE2_SCROLL_TIMEOUT_MS);
+        }
+    }
+
+    let vue2ScrollXTimeout: null | number = null;
+
+    /**
+     * Calculate virtual scroll parameters based on horizontal scroll bar position
+     */
+    function updateVirtualScrollX(sLeft = 0) {
+        if (!props.virtualX) return;
+        const tableHeaderLastValue = tableHeaderLast();
+        const headerLength = tableHeaderLastValue?.length;
+        if (!headerLength) return;
+
+        const { scrollLeft, containerWidth } = virtualScrollX();
+        let startIndex = 0;
+        let offsetLeft = 0;
+        /** 横向滚动时，第一列的剩余宽度 */
+        let leftFirstColRestWidth = 0;
+
+        // 使用缓存的累计宽度数组，列配置不变时直接复用
+        const { nonFixedCols, leftFixedCols } = getColWidthCache(tableHeaderLastValue);
+
+        if (nonFixedCols.length > 0 && sLeft > 0) {
+            // 二分查找：找到第一个累计宽度 > sLeft 的非固定列
+            // 使用 <= 确保当列右边缘恰好等于 sLeft 时（列完全滚出视口），不再将其作为起始列
+            const found = binarySearch(nonFixedCols, mid => {
+                return nonFixedCols[mid].cumWidth <= sLeft ? -1 : 1;
+            });
+            const idx = Math.min(found, nonFixedCols.length - 1);
+            startIndex = nonFixedCols[idx].index;
+            offsetLeft = idx > 0 ? nonFixedCols[idx - 1].cumWidth : 0;
+            leftFirstColRestWidth = nonFixedCols[idx].cumWidth - sLeft;
+        } else if (nonFixedCols.length > 0) {
+            startIndex = nonFixedCols[0].index;
+        }
+        // -----
+        // 根据 startIndex 快速计算实际在可视区域内的左侧固定列宽度
+        let actualLeftColWidthSum = 0;
+        for (const leftCol of leftFixedCols) {
+            if (leftCol.index >= startIndex) break;
+            actualLeftColWidthSum += leftCol.width;
+        }
+        const containerW = containerWidth - actualLeftColWidthSum;
+        let endIndex = headerLength;
+        let endColWidthSum = leftFirstColRestWidth;
+
+        /**
+         * 这里根据 leftFirstColRestWidth 如果为0 说明开始位置恰好在单元格边界，则计算endIndex 需要从当前单元格开始。
+         * 如果有值，则说明开始位置的单元格已经切了一半，需要从下一个单元格开始计算 因此startIndex + 1。
+         */
+        for (let colIndex = leftFirstColRestWidth ? startIndex + 1 : startIndex; colIndex < headerLength; colIndex++) {
+            const col = tableHeaderLastValue[colIndex];
+            endColWidthSum += getCalculatedColWidth(col);
+            // 列宽大于容器宽度则停止
+            if (endColWidthSum >= containerW) {
+                endIndex = colIndex + 1; // slice endIndex + 1
+                break;
+            }
+        }
+
+        endIndex = Math.min(endIndex, headerLength);
+
+        if (vue2ScrollXTimeout) {
+            window.clearTimeout(vue2ScrollXTimeout);
+        }
+
+        // <= 等于是因为初始化时要赋值
+        if (!props.optimizeVue2Scroll || sLeft <= scrollLeft) {
+            // 向左滚动
+            setVirtualScrollX(prev => ({ ...prev, startIndex, endIndex, offsetLeft, scrollLeft: sLeft }));
+        } else {
+            // vue2 向右滚动优化
+            setVirtualScrollX(prev => ({ ...prev, endIndex, scrollLeft: sLeft }));
+            vue2ScrollXTimeout = window.setTimeout(() => {
+                setVirtualScrollX(prev => ({ ...prev, startIndex, offsetLeft }));
+            }, VUE2_SCROLL_TIMEOUT_MS);
+        }
+    }
+
+    return [
+        virtualScroll,
+        virtualScrollX,
+        virtual_on,
+        virtual_dataSourcePart,
+        virtual_offsetBottom,
+        virtualX_on,
+        virtualX_offsetRight,
+        tableHeaderHeight,
+        initVirtualScroll,
+        initVirtualScrollY,
+        initVirtualScrollX,
+        updateVirtualScrollY,
+        updateVirtualScrollX,
+        setAutoHeight,
+        clearAllAutoHeight,
+        clearColWidthCache,
+        virtualX_tableHeaders,
+        expandRowColspan,
+        theadVirtualX,
+        virtualX_columnPart,
+    ] as const;
+}

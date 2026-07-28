@@ -1,0 +1,116 @@
+import { createEffect, on, onMount, onCleanup, type Accessor } from 'solid-js';
+import { AreaSelectionConfig, StkTableColumn } from '../types';
+import { VirtualScrollStore, VirtualScrollXStore } from './useVirtualScroll';
+
+/** 翻页按键 */
+const ScrollCodes = {
+    ArrowUp: 'ArrowUp',
+    ArrowRight: 'ArrowRight',
+    ArrowDown: 'ArrowDown',
+    ArrowLeft: 'ArrowLeft',
+    PageUp: 'PageUp',
+    PageDown: 'PageDown',
+    Home: 'Home',
+    End: 'End',
+} as const;
+
+type ScrollCodes = (typeof ScrollCodes)[keyof typeof ScrollCodes];
+
+/** 所有翻页按键数组 */
+const ScrollCodesValues = Object.values(ScrollCodes);
+
+/**
+ * 按下键盘箭头滚动。只有悬浮在表体上才能生效键盘。
+ *
+ * 在低版本浏览器中，虚拟滚动时，使用键盘滚动，等选中的行消失在视口外时，滚动会失效。
+ */
+export function useKeyboardArrowScroll<DT extends Record<string, any>>(
+    targetElement: Accessor<HTMLElement | undefined>,
+    props: any,
+    scrollTo: (y: number | null, x: number | null) => void,
+    virtualScroll: Accessor<VirtualScrollStore>,
+    virtualScrollX: Accessor<VirtualScrollXStore>,
+    tableHeaders: Accessor<StkTableColumn<DT>[][]>,
+    virtual_on: Accessor<boolean>,
+    areaSelectionConfig: Accessor<AreaSelectionConfig>,
+) {
+    /** 检测鼠标是否悬浮在表格体上 */
+    let isMouseOver = false;
+    createEffect(
+        on(virtual_on, val => {
+            removeListeners();
+            if (val) {
+                addEventListeners();
+            }
+        }),
+    );
+
+    onMount(addEventListeners);
+
+    onCleanup(removeListeners);
+
+    function addEventListeners() {
+        window.addEventListener('keydown', handleKeydown);
+        targetElement()?.addEventListener('mouseenter', handleMouseEnter);
+        targetElement()?.addEventListener('mouseleave', handleMouseLeave);
+        targetElement()?.addEventListener('mousedown', handleMouseDown);
+    }
+
+    function removeListeners() {
+        window.removeEventListener('keydown', handleKeydown);
+        targetElement()?.removeEventListener('mouseenter', handleMouseEnter);
+        targetElement()?.removeEventListener('mouseleave', handleMouseLeave);
+        targetElement()?.removeEventListener('mousedown', handleMouseDown);
+    }
+
+    /** 键盘按下事件 */
+    function handleKeydown(e: KeyboardEvent) {
+        if (!virtual_on()) return; // 非虚拟滚动使用浏览器默认滚动
+        // 如果单元格选区键盘控制已启用，则不处理滚动，交给 useAreaSelection 处理
+        if (areaSelectionConfig().keyboard) return;
+        const keyCode = e.code;
+        if (!ScrollCodesValues.includes(keyCode as any)) return;
+        if (!isMouseOver) return; // 不悬浮还是要触发键盘事件的
+        e.preventDefault(); // 不触发键盘默认的箭头事件
+
+        const { scrollTop, rowHeight, containerHeight, scrollHeight } = virtualScroll();
+        const { scrollLeft } = virtualScrollX();
+        const { headless, headerRowHeight } = props;
+
+        // 这里不用virtualScroll 中的pageSize，因为我需要上一页的最后一条放在下一页的第一条
+        const headerHeight = headless ? 0 : tableHeaders().length * (headerRowHeight || rowHeight);
+        /** 表体的page */
+        const bodyPageSize = Math.floor((containerHeight - headerHeight) / rowHeight);
+        if (keyCode === ScrollCodes.ArrowUp) {
+            scrollTo(scrollTop - rowHeight, null);
+        } else if (keyCode === ScrollCodes.ArrowRight) {
+            scrollTo(null, scrollLeft + 50);
+        } else if (keyCode === ScrollCodes.ArrowDown) {
+            scrollTo(scrollTop + rowHeight, null);
+        } else if (keyCode === ScrollCodes.ArrowLeft) {
+            scrollTo(null, scrollLeft - 50);
+        } else if (keyCode === ScrollCodes.PageUp) {
+            scrollTo(scrollTop - rowHeight * bodyPageSize + headerHeight, null);
+        } else if (keyCode === ScrollCodes.PageDown) {
+            scrollTo(scrollTop + rowHeight * bodyPageSize - headerHeight, null);
+        } else if (keyCode === ScrollCodes.Home) {
+            scrollTo(0, null);
+        } else if (keyCode === ScrollCodes.End) {
+            scrollTo(scrollHeight, null);
+        }
+    }
+
+    function handleMouseEnter() {
+        isMouseOver = true;
+    }
+    function handleMouseLeave() {
+        isMouseOver = false;
+    }
+    /**
+     * 兜底。
+     * 是否存在不触发mouseEnter的时候？
+     */
+    function handleMouseDown() {
+        if (!isMouseOver) isMouseOver = true;
+    }
+}

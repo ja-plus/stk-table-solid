@@ -1,0 +1,79 @@
+:root {
+    /* VitePress 品牌色覆盖为 Solid 蓝色 */
+    --vp-c-brand-1: #2c4f7c;
+    --vp-c-brand-2: #24405f;
+    --vp-c-brand-3: #1d3350;
+    --vp-c-brand-soft: rgba(44, 79, 124, 0.14);
+
+    --vp-home-hero-name-color: transparent;
+    --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #76b3e1, #f09797);
+    --vp-home-hero-image-background-image: -webkit-linear-gradient(120deg, rgba(118, 179, 225, 0.5) 50%, rgba(253, 126, 126, 0.5) 50%, rgba(253, 126, 126, 0.5));
+    --vp-home-hero-image-filter: blur(72px);
+}
+
+.dark {
+    --vp-c-brand-1: #76b3e1;
+    --vp-c-brand-2: #8fc0e8;
+    --vp-c-brand-3: #5a9fd4;
+    --vp-c-brand-soft: rgba(118, 179, 225, 0.16);
+}
+
+.no-aside-padding .VPContent.has-sidebar {
+    padding-right: 16px;
+}
+
+/* VitePress 的 hero action 原生不支持 icon 属性，这里通过 CSS 在首页跨框架跳转按钮文字前注入 logo（data URI 内联，不受 base 路径影响） */
+.VPHero .actions a[href*='stk-table-vue']::before {
+    content: '';
+    display: inline-block;
+    width: 1.25em;
+    height: 1.25em;
+    margin-right: 6px;
+    vertical-align: -0.3em;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 261.76 226.69'%3E%3Cpath d='M161.096.001l-30.225 52.351L100.647.001H0l130.871 226.688L261.76.001z' fill='%2341b883'/%3E%3Cpath d='M161.096.001l-30.225 52.351L100.647.001H52.346l78.525 136.01L209.398.001z' fill='%2334495e'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+.VPHero .actions a[href*='stk-table-react']::before {
+    content: '';
+    display: inline-block;
+    width: 1.25em;
+    height: 1.25em;
+    margin-right: 6px;
+    vertical-align: -0.3em;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-11.5 -10.23174 23 20.46348'%3E%3Ccircle cx='0' cy='0' r='2.05' fill='%2361dafb'/%3E%3Cg stroke='%2361dafb' stroke-width='1' fill='none'%3E%3Cellipse rx='11' ry='4.2'/%3E%3Cellipse rx='11' ry='4.2' transform='rotate(60)'/%3E%3Cellipse rx='11' ry='4.2' transform='rotate(120)'/%3E%3C/g%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+.VPHero .actions a[href*='stk-table-svelte']::before {
+    content: '';
+    display: inline-block;
+    width: 1.25em;
+    height: 1.25em;
+    margin-right: 6px;
+    vertical-align: -0.3em;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff3e00' d='M10.354 21.125a4.44 4.44 0 0 1-4.765-1.767 4.109 4.109 0 0 1-.703-3.107 3.898 3.898 0 0 1 .134-.522l.105-.321.287.21a7.21 7.21 0 0 0 2.186 1.092l.208.063-.02.208a1.253 1.253 0 0 0 .226.83 1.337 1.337 0 0 0 1.435.533 1.231 1.231 0 0 0 .343-.15l5.59-3.562a1.164 1.164 0 0 0 .524-.778 1.242 1.242 0 0 0-.211-.937 1.338 1.338 0 0 0-1.435-.533 1.23 1.23 0 0 0-.343.15l-2.133 1.36a4.078 4.078 0 0 1-1.135.499 4.44 4.44 0 0 1-4.765-1.766 4.108 4.108 0 0 1-.702-3.108 3.855 3.855 0 0 1 1.742-2.582l5.589-3.563a4.072 4.072 0 0 1 1.135-.498 4.44 4.44 0 0 1 4.765 1.767 4.109 4.109 0 0 1 .703 3.107 3.943 3.943 0 0 1-.134.522l-.105.321-.286-.21a7.204 7.204 0 0 0-2.187-1.093l-.208-.063.02-.207a1.255 1.255 0 0 0-.226-.831 1.337 1.337 0 0 0-1.435-.532 1.231 1.231 0 0 0-.343.15l-5.59 3.561a1.164 1.164 0 0 0-.523.778 1.242 1.242 0 0 0 .211.937 1.338 1.338 0 0 0 1.435.533 1.232 1.232 0 0 0 .344-.151l2.132-1.36a4.067 4.067 0 0 1 1.135-.498 4.44 4.44 0 0 1 4.765 1.766 4.108 4.108 0 0 1 .702 3.108 3.857 3.857 0 0 1-1.742 2.583l-5.589 3.562a4.072 4.072 0 0 1-1.135.498'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+/* demo 中的表格高度撑满外层容器，保证虚拟滚动生效 */
+.vitepress-demo-plugin-preview .stk-table {
+    height: 100%;
+}
+
+/*
+ * 隔离 demo 与 .vp-doc 的 markdown 表格样式：
+ * VitePress 的 vp-doc table 样式（display:block / margin / overflow-x）可能泄漏进 demo 的 <table>。
+ * 这里仅重置 demo 容器内的 <table>（选择器限定在 .vitepress-demo-plugin-preview 内，
+ * 不会命中 md 中的表格，故不影响 md 表格样式）。
+ */
+.vitepress-demo-plugin-preview table {
+    display: table;
+    margin: 0;
+    overflow-x: visible;
+}
+.vitepress-demo-plugin-preview table th,
+.vitepress-demo-plugin-preview table td {
+    border: 0;
+}
+.vitepress-demo-plugin-preview table tr {
+    border-top: none;
+    transition: none;
+}

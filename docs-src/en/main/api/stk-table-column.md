@@ -1,0 +1,162 @@
+# StkTableColumn
+
+Columns Configuration
+
+```tsx
+<StkTable columns={columns} />
+```
+::: warning Shallow Watch
+The component **does not** deep watch the `columns` property. Therefore, if you find that pushing columns does not take effect, consider updating the reference as follows:
+:::
+
+```ts
+setColumns(columns.slice()); // 更新数组引用
+```
+
+### StkTableColumn Configuration
+``` ts
+export type StkTableColumn<T extends Record<string, any>> = {
+    /**
+     * 列唯一键，(可选)，不传则默认取dataIndex 字段作为列唯一键。
+     */
+    key?: any;
+    /**
+     * 列类型
+     * - seq 序号列
+     * - expand 展开列
+     * - dragRow 拖拽列(使用sktTableRef.getTableData 获取改变后的顺序)
+     * - tree-node 树节点列，这一列前面有展开收起箭头
+     */
+    type?: 'seq' | 'expand' | 'dragRow' | 'tree-node';
+    /** 取值id */
+    dataIndex: keyof T & string;
+    /** 表头文字 */
+    title?: string;
+    /** 列内容对齐方式 */
+    align?: 'right' | 'left' | 'center';
+    /** 表头内容对齐方式 */
+    headerAlign?: 'right' | 'left' | 'center';
+    /** 筛选 */
+    sorter?: Sorter<T>;
+    /** 列宽。横向虚拟滚动时必须设置。 */
+    width?: string | number;
+    /** 最小列宽。非x虚拟滚动生效。 */
+    minWidth?: string | number;
+    /** 最大列宽。非x虚拟滚动生效。 */
+    maxWidth?: string | number;
+    /**th class */
+    headerClassName?: string;
+    /** td class */
+    className?: string;
+    /** 排序字段。default: dataIndex */
+    sortField?: keyof T;
+    /** 排序方式。按数字/字符串 */
+    sortType?: 'number' | 'string';
+    /** 固定列 */
+    fixed?: 'left' | 'right' | null;
+    /** 是否隐藏列 */
+    hidden?: boolean;
+    /** 配置当前列的排序规则 */
+    sortConfig?: Omit<SortConfig<T>, 'defaultSort'>;
+    /**
+     * 自定义 td 渲染内容。
+     *
+     * 组件prop入参:
+     * @param props.row 一行的记录。
+     * @param props.col 列配置
+     * @param props.cellValue row[col.dataIndex] 的值
+     * @param props.rowIndex 行索引
+     * @param props.colIndex 列索引 (从0开始) 在virtual-x下 表示虚拟列表中的列索引
+     */
+    customCell?: CustomCell<CustomCellProps<T>, T>;
+    /**
+     * 自定义 th 渲染内容
+     *
+     * 组件prop入参:
+     * @param props.col 列配置
+     * @param props.rowIndex 行索引
+     * @param props.colIndex 列索引 (从0开始) 在virtual-x下 表示虚拟列表中的列索引
+     */
+    customHeaderCell?: CustomCell<CustomHeaderCellProps<T>, T>;
+    /**
+     * 自定义 tfoot td 渲染内容
+     *
+     * 组件prop入参:
+     * @param props.row tfoot行的记录。
+     * @param props.col 列配置
+     * @param props.cellValue row[col.dataIndex] 的值
+     * @param props.rowIndex tfoot行索引（从0开始）
+     * @param props.colIndex 列索引
+     */
+    customFooterCell?: CustomCell<CustomFooterCellProps<T>, T>;
+    /** 二级表头 */
+    children?: StkTableColumn<T>[];
+     /** 单元格合并 */
+    mergeCells?: MergeCellsFn<T>;
+};
+```
+
+## StkTableColumn.CustomCell
+
+In SolidJS, `customCell` can be a SolidJS component (receiving props), a function returning JSX, or a string.
+
+```ts
+export type CustomCell<T extends CustomCellProps<U> | CustomHeaderCellProps<U>, U extends Record<string, any>> =
+    | Component<Partial<T>>
+    | ((props: Partial<T>) => JSX.Element)
+    | string;
+```
+
+## StkTableColumn.Sorter 
+```ts
+type Sorter<T> = boolean 
+    | ((
+        data: T[],
+        option: { order: Order; column: any }
+    ) => T[]);
+
+```
+
+## StkTableColumn.SortConfig
+```ts
+/** 排序配置 */
+export type SortConfig<T extends Record<string, any>> = {
+    /** 空值始终排在列表末尾 */
+    emptyToBottom?: boolean;
+    /**
+     * 默认排序（1.初始化时触发 2.排序方向为null时触发)
+     * 类似onMounted时，调用setSorter点了下表头。
+     */
+    defaultSort?: {
+        dataIndex: keyof T;
+        order: Order;
+        /** 是否禁止触发sort-change事件。默认false，表示触发事件。 */
+        silent?: boolean;
+    };
+    /**
+     * string排序是否使用 String.prototype.localCompare
+     * 默认true ($*$应该false)
+     */
+    stringLocaleCompare?: boolean;
+    /** 是否排序子项。默认false */
+    sortChildren?: boolean;
+};
+```
+
+## StkTableColumn.MergeCellsFn
+
+```ts
+export type MergeCellsParam<T extends Record<string, any>> = {
+    row: T;
+    col: StkTableColumn<T>;
+    rowIndex: number;
+    colIndex: number;
+};
+
+export type MergeCellsFn<T extends Record<string, any>> =
+    (data: MergeCellsParam<T>) => 
+        { 
+            rowspan?: number; 
+            colspan?: number 
+        } | undefined;
+```

@@ -1,0 +1,432 @@
+import type { Accessor, Component, JSX } from 'solid-js';
+
+/** 排序方式，asc-正序，desc-倒序，null-默认顺序 */
+export type Order = null | 'asc' | 'desc';
+
+type Sorter<T> = boolean | ((data: T[], option: { order: Order; column: any }) => T[]);
+
+export type CustomCellProps<T extends Record<string, any>> = {
+    row: T;
+    col: StkTableColumn<T>;
+    /** row[col.dataIndex] 的值 */
+    cellValue: any;
+    rowIndex: number;
+    colIndex: number;
+    /**
+     * 当前行是否展开
+     * - 不展开: null
+     * - 展开: 返回column配置
+     */
+    expanded?: PrivateRowDT['__EXP__'];
+    /** if tree expanded */
+    treeExpanded?: PrivateRowDT['__T_EXP__'];
+    /** 子元素（用于插槽） */
+    children?: JSX.Element;
+};
+
+export type CustomHeaderCellProps<T extends Record<string, any>> = {
+    col: StkTableColumn<T>;
+    rowIndex: number;
+    colIndex: number;
+};
+
+export type CustomFooterCellProps<T extends Record<string, any>> = {
+    col: StkTableColumn<T>;
+    row: T;
+    cellValue: any;
+    rowIndex: number;
+    colIndex: number;
+};
+
+export type MergeCellsParam<T extends Record<string, any>> = {
+    row: T;
+    col: StkTableColumn<T>;
+    rowIndex: number;
+    colIndex: number;
+};
+
+export type MergeCellsFn<T extends Record<string, any>> = (data: MergeCellsParam<T>) => { rowspan?: number; colspan?: number } | undefined;
+
+/**
+ * 自定义渲染单元格
+ *
+ * SolidJS 中，customCell 可以是一个 SolidJS 组件（接收 props），也可以是一个返回 JSX 的函数。
+ */
+export type CustomCell<T extends CustomCellProps<U> | CustomHeaderCellProps<U>, U extends Record<string, any>> =
+    | Component<Partial<T>>
+    | ((props: Partial<T>) => JSX.Element)
+    | string;
+
+/** 表格列配置 */
+export type StkTableColumn<T extends Record<string, any>> = {
+    /**
+     * 列唯一键，(可选)，不传则默认取dataIndex 字段作为列唯一键。
+     */
+    key?: any;
+    /**
+     * 列类型
+     * - seq 序号列
+     * - expand 展开列
+     * - dragRow 拖拽列(使用sktTableRef.getTableData 获取改变后的顺序)
+     * - tree-node 树节点列，这一列前面有展开收起箭头
+     */
+    type?: 'seq' | 'expand' | 'dragRow' | 'tree-node';
+    /** 取值id */
+    dataIndex: keyof T & string;
+    /** 表头文字 */
+    title?: string;
+    /** 列内容对齐方式 */
+    align?: 'right' | 'left' | 'center';
+    /** 表头内容对齐方式 */
+    headerAlign?: 'right' | 'left' | 'center';
+    /** 筛选 */
+    sorter?: Sorter<T>;
+    /** 列宽。横向虚拟滚动时必须设置。 */
+    width?: string | number;
+    /** 最小列宽。非x虚拟滚动生效。 */
+    minWidth?: string | number;
+    /** 最大列宽。非x虚拟滚动生效。 */
+    maxWidth?: string | number;
+    /**th class */
+    headerClassName?: string;
+    /** td class */
+    className?: string;
+    /** 排序字段。default: dataIndex */
+    sortField?: keyof T;
+    /** 排序方式。按数字/字符串 */
+    sortType?: 'number' | 'string';
+    /** 配置当前列的排序规则 */
+    sortConfig?: Omit<SortConfig<T>, 'defaultSort'>;
+    /** 固定列 */
+    fixed?: 'left' | 'right' | null;
+    /** 是否隐藏列 */
+    hidden?: boolean;
+    /**
+     * 自定义 td 渲染内容。
+     *
+     * 组件prop入参:
+     * @param props.row 一行的记录。
+     * @param props.col 列配置
+     * @param props.cellValue row[col.dataIndex] 的值
+     * @param props.rowIndex 行索引
+     * @param props.colIndex 列索引
+     */
+    customCell?: CustomCell<CustomCellProps<T>, T>;
+    /**
+     * 自定义 th 渲染内容
+     *
+     * 组件prop入参:
+     * @param props.col 列配置
+     * @param props.rowIndex 行索引
+     * @param props.colIndex 列索引
+     */
+    customHeaderCell?: CustomCell<CustomHeaderCellProps<T>, T>;
+    /**
+     * 自定义 tfoot td 渲染内容
+     *
+     * 组件prop入参:
+     * @param props.row tfoot行的记录。
+     * @param props.col 列配置
+     * @param props.cellValue row[col.dataIndex] 的值
+     * @param props.rowIndex tfoot行索引（从0开始）
+     * @param props.colIndex 列索引
+     */
+    customFooterCell?: CustomCell<CustomFooterCellProps<T>, T>;
+    /** 二级表头 */
+    children?: StkTableColumn<T>[];
+    /** 单元格合并 */
+    mergeCells?: MergeCellsFn<T>;
+};
+
+/** private StkTableColumn type. Add some private key */
+export type PrivateStkTableColumn<T extends Record<string, any>> = StkTableColumn<T> & {
+    /** header rowSpan */
+    __R_SP__?: number;
+    /** header colSpan */
+    __C_SP__?: number;
+    /**
+     * parent not ref
+     * @private
+     */
+    __P__?: StkTableColumn<T> | null;
+    /**
+     * Save the calculated width. Used for horizontal virtual scrolling.
+     * @private
+     */
+    __W__?: number;
+    /**
+     * 当前列在 tableHeaderLast 中的起始叶子索引（含）。用于多级表头横向虚拟滚动。
+     * @private
+     */
+    __LF_S__?: number;
+    /**
+     * 当前列在 tableHeaderLast 中的结束叶子索引（不含）。用于多级表头横向虚拟滚动。
+     * @private
+     */
+    __LF_E__?: number;
+    /**
+     * 虚拟滚动右侧 spacer 占用的列数。仅用于内部 spacer 标记列。
+     * @private
+     */
+    __VT_C_SP__?: number;
+};
+/** private row keys */
+export type PrivateRowDT = {
+    /**
+     * Only expanded row will add this key
+     *
+     * If user define the `__R_K__` in table data, this value will be used as the row key
+     * @private
+     */
+    __R_K__?: string;
+    /**
+     * if row expanded
+     * @private
+     */
+    __EXP__?: StkTableColumn<any>;
+    /**
+     * if tree node row expanded
+     * @private
+     */
+    __T_EXP__?: boolean;
+    /**
+     * tree parent key
+     * @private
+     */
+    __T_P_K__?: UniqKey;
+    /**
+     * tree level
+     * @private
+     */
+    __T_LV__?: number;
+    /** expanded row */
+    __EXP_R__?: any;
+    /** expanded col */
+    __EXP_C__?: StkTableColumn<any>;
+    children?: any[];
+};
+
+export type SortOption<T extends Record<string, any>> = Pick<StkTableColumn<T>, 'sorter' | 'dataIndex' | 'sortField' | 'sortType'>;
+
+/**
+ * 单列排序状态
+ */
+export type SortState<T extends Record<string, any>> = Pick<StkTableColumn<T>, 'key' | 'dataIndex' | 'sortField' | 'sortType'> & {
+    order: Order;
+};
+
+export type UniqKey = string | number;
+export type UniqKeyFun = (param: any) => UniqKey;
+export type UniqKeyProp = UniqKey | UniqKeyFun;
+
+/**
+ * 默认排序配置
+ */
+export type DefaultSortConfig<T extends Record<string, any>> = {
+    /**
+     * colKey
+     *
+     * if set `props.colKey`
+     *
+     * default: StkTableColumn<T>['dataIndex']
+     */
+    key?: StkTableColumn<T>['key'];
+    dataIndex: StkTableColumn<T>['dataIndex'];
+    order: Order;
+    sortField?: StkTableColumn<T>['sortField'];
+    sortType?: StkTableColumn<T>['sortType'];
+    sorter?: StkTableColumn<T>['sorter'];
+    /**
+     * whether to disable trigger`sort-change` event. default: false
+     */
+    silent?: boolean;
+};
+
+export type SortConfig<T extends Record<string, any>> = {
+    /**
+     * 1. trigger when init
+     * 2. trigger when sort direction is null
+     */
+    defaultSort?: DefaultSortConfig<T>;
+    /** empty value always sort to bottom */
+    emptyToBottom?: boolean;
+    /**
+     * string sort if use `String.prototype.localCompare`
+     * default: false
+     */
+    stringLocaleCompare?: boolean;
+    /**
+     * whether to sort children when sort current column. default: false
+     */
+    sortChildren?: boolean;
+    /**
+     * 是否启用多列排序
+     * - false (default): 单列排序，点击新列会取消之前列的排序
+     * - true: 多列排序，支持同时按多列排序，通过点击顺序决定优先级
+     */
+    multiSort?: boolean;
+    /**
+     * 多列排序时的最大列数限制
+     * default: 3
+     */
+    multiSortLimit?: number;
+};
+
+/** th td type */
+export const TagType = {
+    TH: 0,
+    TD: 1,
+    /** tfoot */
+    TF: 2,
+} as const;
+
+export type TagType = (typeof TagType)[keyof typeof TagType];
+
+export type HighlightConfig = {
+    /** Duration of the highlight in seconds */
+    duration?: number;
+    /** Frame rate of the highlight */
+    fps?: number;
+};
+
+/**
+ * Configuration options for the sequence column.
+ */
+export type SeqConfig = {
+    /** The initial subscript of the sequence number column is used to adapt the paging. */
+    startIndex?: number;
+};
+
+/** Configuration options for the expand column  */
+export type ExpandConfig = {
+    /** worked in virtual mode */
+    height?: number;
+};
+
+/** drag row config */
+export type DragRowConfig = {
+    mode?: 'none' | 'insert' | 'swap';
+};
+
+export type TreeConfig = {
+    defaultExpandAll?: boolean;
+    defaultExpandKeys?: UniqKey[];
+    defaultExpandLevel?: number;
+};
+
+/** header drag config */
+export type HeaderDragConfig<DT extends Record<string, any> = any> = {
+    /**
+     * col switch mode
+     * - none
+     * - insert - (default)
+     * - swap
+     */
+    mode?: 'none' | 'insert' | 'swap';
+    /** disabled drag col */
+    disabled?: (col: StkTableColumn<DT>) => boolean;
+};
+
+export type AutoRowHeightConfig<DT> = {
+    /** Estimated row height */
+    expectedHeight?: number | ((row: DT) => number);
+};
+
+export type ColResizableConfig<DT extends Record<string, any>> = {
+    disabled: (col: StkTableColumn<DT>) => boolean;
+};
+
+export type RowKeyGen = (row: any) => UniqKey;
+
+export type ColKeyGen = Accessor<(col: StkTableColumn<any>) => UniqKey>;
+
+export type CellKeyGen = (row: any, col: StkTableColumn<any>) => string;
+
+export type RowActiveOption<DT> = {
+    enabled?: boolean;
+    /** disabled row active */
+    disabled?: (row: DT) => boolean;
+    /** current row again click can revoke active */
+    revokable?: boolean;
+};
+
+/** 单元格选区范围 */
+export type AreaSelectionRange = {
+    index: {
+        /** column index range @deprecated */
+        x: [number, number];
+        /** row index range @deprecated */
+        y: [number, number];
+        /** start point index*/
+        begin: { row: number; col: number };
+        /** end point index */
+        end: { row: number; col: number };
+    };
+};
+
+/** 单元格选区配置 */
+export type AreaSelectionConfig<T extends Record<string, any> = any> = {
+    /** default: true */
+    enabled?: boolean;
+    /**
+     * 复制时的单元格文本格式化回调。
+     */
+    formatCellForClipboard?: (row: T, col: StkTableColumn<T>, rawValue: any) => string;
+    /**
+     * 是否启用键盘控制选区移动。
+     * @default false
+     */
+    keyboard?: boolean;
+    /**
+     * 是否启用 Ctrl 多选功能。
+     * @default true
+     */
+    ctrl?: boolean;
+    /**
+     * 是否启用 Shift 扩选功能。
+     * @default true
+     */
+    shift?: boolean;
+    /**
+     * 高亮配置
+     */
+    highlight?: {
+        /**
+         * 是否启用单元格高亮与选中边框。
+         * @default true
+         */
+        cell?: boolean;
+        /**
+         * 是否启用行高亮（单元格跨越的整行都会高亮）。
+         * @default false
+         */
+        row?: boolean;
+    };
+};
+
+/** 获取选中的单元格信息 */
+export type AreaSelectionSetterRange<DT extends Record<string, any>> = {
+    begin: { row: number | DT; col?: number | StkTableColumn<DT> };
+    end?: { row: number | DT; col?: number | StkTableColumn<DT> };
+};
+
+export type AreaSelectionSetterOption = {
+    silent?: boolean;
+    scrollToView?: boolean;
+};
+
+/** 实验性功能配置 */
+export type ExperimentalConfig = {
+    /** use transform to simulate scroll */
+    scrollY?: boolean;
+};
+
+/** 表格底部配置 */
+export type FooterConfig = {
+    /**
+     * 表格底部吸附位置
+     * - bottom: 吸附在表格底部（默认）
+     * - top: 吸附在表格顶部
+     */
+    position?: 'bottom' | 'top';
+};
