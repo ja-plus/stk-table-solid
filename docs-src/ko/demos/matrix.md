@@ -8,7 +8,7 @@ CSS `pointer-event:none` 를 사용하여 첫 번째 열의 hover 이벤트를 �
 ## 주의 사항
 테이블에 높이가 설정되어 있어야 합니다. 그렇지 않으면 customCell 에서 루트 요소에 높이를 설정해도 작동하지 않습니다.
 ```css
-:deep(.stk-table .stk-table-main) {
-    height: 100%; // 重要，这里必须加高度
+.stk-table .stk-table-main {
+    height: 100%; /* 중요, 여기에 높이를 설정해야 합니다 */
 }
 ```

@@ -8,7 +8,7 @@ CSS `pointer-event:none` を使用して最初の列ホバーイベントを無�
 ## 注意事項
 テーブルには高さが設定されている必要があります。そうしないと、customCellでルート要素に高さを設定しても機能しません。
 ```css
-:deep(.stk-table .stk-table-main) {
-    height: 100%; // 重要，这里必须加高度
+.stk-table .stk-table-main {
+    height: 100%; /* 重要、ここで高さを設定する必要があります */
 }
 ```

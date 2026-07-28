@@ -28,7 +28,7 @@ Second, set the `flex` of `.stk-table .stk-table-scroll-container` to `1`
 As follows
 
 ```css
-:deep(.stk-table .stk-table-scroll-container) {
+.stk-table .stk-table-scroll-container {
     flex: 1;
 }
 ```

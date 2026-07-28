@@ -13,7 +13,7 @@
 ### 확장 가능한 행의 텍스트 오버플로
 CSS 를 통해 기본 텍스트 오버플로 스타일을 제거합니다.
 ```css
-:deep(.panel-title > div) {
+.panel-title > div {
     white-space: nowrap;
     overflow: initial;
 }

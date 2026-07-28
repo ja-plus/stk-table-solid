@@ -1,4 +1,5 @@
 import { createSignal, onMount, onCleanup } from 'solid-js';
+import { createStore } from 'solid-js/store';
 import StkTable from '../../StkTable';
 import type { StkTableColumn } from '../../../src/StkTable/index';
 import MatrixCell from './MatrixCell';
@@ -43,16 +44,16 @@ export default function MatrixDemo() {
     const { t } = useI18n();
     let stkTableRef: any;
 
-    const [tableData, setTableData] = createSignal<RowDataType[]>(initTableData());
+    // 使用 createStore 而非 createSignal + 不可变更新：
+    // Solid 的 <For> 按行对象引用复用 DOM，若每次都 map 出新行对象，所有 <tr> 会整行重建。
+    // store 保持行引用稳定，只修改叶子字段，DOM 仅精准更新被修改的绑定。
+    const [tableData, setTableData] = createStore<RowDataType[]>(initTableData());
     const [running, setRunning] = createSignal(false);
     let intervalId = 0;
 
     function updateCell() {
-        setTableData(prev => {
-            const next = [...prev];
-            next[0] = { ...next[0], m1: createCellData() };
-            return next;
-        });
+        // 只替换第一行的 m1 单元格数据，其它单元格不会重新渲染
+        setTableData(0, 'm1', createCellData());
         stkTableRef?.setHighlightDimCell('AAA+', 'm1');
     }
 
@@ -65,15 +66,8 @@ export default function MatrixDemo() {
         }
 
         intervalId = self.setInterval(() => {
-            setTableData(prev =>
-                prev.map(row => {
-                    let percent = row.y1.percent + 1;
-                    if (percent > 100) {
-                        percent = 0;
-                    }
-                    return { ...row, y1: { ...row.y1, percent } };
-                }),
-            );
+            // 精准更新：只修改每行 y1.percent 叶子字段，仅触发对应单元格的 --percent 样式更新
+            setTableData({ from: 0, to: tableData.length - 1 }, 'y1', 'percent', percent => (percent + 1 > 100 ? 0 : percent + 1));
         }, 100);
         setRunning(true);
     }
@@ -103,7 +97,7 @@ export default function MatrixDemo() {
                 rowHover={false}
                 rowActive={false}
                 columns={columns}
-                dataSource={tableData()}
+                dataSource={tableData}
                 onCellClick={e => console.log('cell-click', e)}
             />
             <style>{`

@@ -13,7 +13,7 @@ Configure `emptyCellText` to return an empty string when a row has children.
 ### Text Overflow for Expandable Rows
 Remove the default text overflow style through CSS.
 ```css
-:deep(.panel-title > div) {
+.panel-title > div {
     white-space: nowrap;
     overflow: initial;
 }

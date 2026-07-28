@@ -13,7 +13,7 @@
 ### 展開可能な行のテキストオーバーフロー
 CSS介してデフォルトのテキストオーバーフロースタイルを削除します。
 ```css
-:deep(.panel-title > div) {
+.panel-title > div {
     white-space: nowrap;
     overflow: initial;
 }

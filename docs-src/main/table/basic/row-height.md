@@ -28,7 +28,7 @@
 如下
 
 ```css
-:deep(.stk-table .stk-table-scroll-container) {
+.stk-table .stk-table-scroll-container {
     flex: 1;
 }
 ```

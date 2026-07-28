@@ -123,7 +123,7 @@ export default function PanelTreeDemo() {
                 dataSource={tableData()}
             />
             <style>{`
-.panel-tree-demo .panel-title > div {
+.panel-tree-demo .stk-table .panel-title > div {
     font-weight: bold;
     overflow: initial;
     white-space: nowrap;

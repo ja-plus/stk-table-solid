@@ -1,5 +1,7 @@
-import { createSignal, For, onCleanup, onMount, Show } from 'solid-js';
+import { createSignal, onCleanup } from 'solid-js';
 import { render } from 'solid-js/web';
+import StkTable from '../../../StkTable';
+import type { StkTableColumn } from '../../../types/index';
 import type { FilterOption } from '../types';
 
 const DROPDOWN_DEFAULT_WIDTH = 300;
@@ -8,7 +10,14 @@ const PADDING = 6;
 
 export interface DropdownInstance {
     visible: boolean;
-    show: (pos: { x: number; y: number; height?: number }, options: FilterOption[], onConfirm: (values: FilterOption['value'][]) => void) => void;
+    /** 当前打开面板的触发元素（用于区分不同列的筛选图标） */
+    trigger: Element | null;
+    show: (
+        pos: { x: number; y: number; height?: number },
+        options: FilterOption[],
+        onConfirm: (values: FilterOption['value'][]) => void,
+        trigger?: Element,
+    ) => void;
     hide: () => void;
     setTheme: (t: 'light' | 'dark') => void;
 }
@@ -16,8 +25,7 @@ export interface DropdownInstance {
 /**
  * 筛选下拉面板（单例，挂载到 body）
  *
- * SolidJS 版本不依赖 StkTable 渲染选项列表（避免循环依赖），
- * 直接使用原生 checkbox 列表实现，功能与 Vue 版本对齐。
+ * 与 Vue 版本一致，使用 StkTable（headless + virtual）渲染选项列表。
  */
 function createDropdown(): DropdownInstance {
     const [visible, setVisible] = createSignal(false);
@@ -26,7 +34,19 @@ function createDropdown(): DropdownInstance {
     const [position, setPosition] = createSignal<{ x: number; y: number }>({ x: 0, y: 0 });
     const [checkedSet, setCheckedSet] = createSignal<Set<FilterOption['value']>>(new Set());
 
+    const columns: StkTableColumn<FilterOption>[] = [
+        {
+            title: '',
+            dataIndex: 'value',
+            width: 30,
+            className: 'stk-filter-dropdown-checkbox',
+            customCell: ({ row }) => <input type="checkbox" checked={checkedSet().has(row!.value)} />,
+        },
+        { title: '', dataIndex: 'label' },
+    ];
+
     let dropdownEl: HTMLDivElement | undefined;
+    let triggerEl: Element | null = null;
     let onConfirmFn: ((values: FilterOption['value'][]) => void) | null = null;
     let dispose: (() => void) | null = null;
 
@@ -101,6 +121,7 @@ function createDropdown(): DropdownInstance {
         setVisible(false);
         setOptions([]);
         setCheckedSet(new Set());
+        triggerEl = null;
     }
 
     function handleClear() {
@@ -113,18 +134,28 @@ function createDropdown(): DropdownInstance {
 
     function handleClickOutside(e: MouseEvent) {
         if (!visible() || dropdownEl?.contains(e.target as Node)) return;
+        // 触发图标（Solid 委托事件挂在 document 上，stopPropagation 无法阻止本监听器）上的点击
+        // 由 Filter 组件自行处理开关，此处忽略，避免 show 后被立即关闭
+        if (triggerEl?.contains(e.target as Node)) return;
         hide();
+    }
+
+    function handleRowClick(_e: MouseEvent, row: FilterOption) {
+        const selected = checkedSet().has(row.value);
+        updateChecked(!selected, row);
     }
 
     function show(
         pos: { x: number; y: number; height?: number },
         opt: FilterOption[],
         onConfirm: (values: FilterOption['value'][]) => void,
+        trigger?: Element,
     ) {
         if (dropdownEl) {
             dropdownEl.style.visibility = 'hidden';
         }
         setOptions(opt || []);
+        triggerEl = trigger ?? null;
         onConfirmFn = onConfirm;
         initChecked();
         setVisible(true);
@@ -158,24 +189,19 @@ function createDropdown(): DropdownInstance {
                 }}
                 onClick={e => e.stopPropagation()}
             >
-                <div class="stk-filter-dropdown-list">
-                    <For each={options()}>
-                        {opt => (
-                            <label class="stk-filter-dropdown-item" onClick={() => updateChecked(!checkedSet().has(opt.value), opt)}>
-                                <input
-                                    type="checkbox"
-                                    checked={checkedSet().has(opt.value)}
-                                    onChange={e => updateChecked(e.currentTarget.checked, opt)}
-                                    onClick={e => e.stopPropagation()}
-                                />
-                                <span class="stk-filter-dropdown-label">{opt.label}</span>
-                            </label>
-                        )}
-                    </For>
-                    <Show when={!options().length}>
-                        <div class="stk-filter-dropdown-empty">暂无数据</div>
-                    </Show>
-                </div>
+                <StkTable
+                    rowKey="value"
+                    headless
+                    virtual
+                    noDataFull
+                    theme={theme()}
+                    rowActive={false}
+                    rowHeight={20}
+                    bordered={false}
+                    columns={columns}
+                    dataSource={options()}
+                    onRowClick={handleRowClick}
+                />
                 <footer>
                     <button onClick={handleClear}>↺</button>
                     <button onClick={confirm}>✓</button>
@@ -195,6 +221,9 @@ function createDropdown(): DropdownInstance {
     return {
         get visible() {
             return visible();
+        },
+        get trigger() {
+            return triggerEl;
         },
         show,
         hide,

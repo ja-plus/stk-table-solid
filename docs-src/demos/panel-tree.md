@@ -13,7 +13,7 @@
 ### 展开行文字超长
 展开行的单元格加上 `white-space: nowrap` 使文字不换行。
 ```css
-:deep(.panel-title > div) {
+.panel-title > div {
     white-space: nowrap;
     overflow: initial;
 }
