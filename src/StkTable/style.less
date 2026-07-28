@@ -212,7 +212,7 @@
     &.stripe {
         &:not(.vt-on) .stk-tbody-main tr:nth-child(even) {
             background-color: var(--stripe-bgc);
-    }
+        }
 
         &.vt-on .stk-tbody-main tr:nth-child(odd) {
             background-color: var(--stripe-bgc);
@@ -221,7 +221,7 @@
         &.area-selection .stk-tbody-main tr[data-rs-s] {
             background-color: var(--rs-bgc);
         }
-        
+
         &.row-hover .stk-tbody-main tr:hover {
             background-color: var(--tr-hover-bgc);
         }
@@ -440,9 +440,11 @@
         position: sticky;
         bottom: 0;
         z-index: 2;
+
         tr {
             background-color: var(--tf-bgc);
             height: var(--footer-row-height);
+
             td {
                 background-color: inherit;
             }
@@ -469,7 +471,7 @@
     .vt-x-left,
     .vt-x-right,
     .vt-x-spacer {
-        background-image:none !important;
+        background-image: none !important;
         padding: 0 !important;
     }
 

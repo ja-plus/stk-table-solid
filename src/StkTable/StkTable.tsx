@@ -14,6 +14,7 @@ import {
     type JSX,
     type Accessor,
 } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 import DragHandle from './components/DragHandle';
 import SortIcon from './components/SortIcon';
 import TreeNodeCell from './components/TreeNodeCell';
@@ -899,7 +900,13 @@ export default function StkTable(rawProps: StkTableProps) {
                 }
                 return classList.filter(Boolean).join(' ');
             },
-            ...mergeCellsWrapper(row, col, rowIndex, (col as PrivateStkTableColumn<DT>).__LF_S__ ?? 0),
+            // 合并单元格 rowspan/colspan：getter 保持响应式（虚拟滚动窗口变化时合并布局会重新计算）
+            get rowspan() {
+                return mergeCellsWrapper(row, col)?.rowspan;
+            },
+            get colspan() {
+                return mergeCellsWrapper(row, col)?.colspan;
+            },
         };
     }
 
@@ -1523,9 +1530,9 @@ export default function StkTable(rawProps: StkTableProps) {
     );
 
     function renderFooter() {
-        const Tag = footerTagName() as any;
+        // tfoot/tbody 动态标签需用 Dynamic 渲染（Solid JSX 中大写变量会被编译为组件调用）
         return (
-            <Tag class="stk-footer" style={isFooterTop() ? `top:${tableHeaderHeight()}px` : ''}>
+            <Dynamic component={footerTagName()} class="stk-footer" style={isFooterTop() ? `top:${tableHeaderHeight()}px` : ''}>
                 <For each={props.footerData}>
                     {(footRow, footRowIndex) => (
                         <tr>
@@ -1570,7 +1577,7 @@ export default function StkTable(rawProps: StkTableProps) {
                         </tr>
                     )}
                 </For>
-            </Tag>
+            </Dynamic>
         );
     }
 
@@ -1608,39 +1615,39 @@ export default function StkTable(rawProps: StkTableProps) {
         if (col.__VT_C_SP__) {
             return <td class="vt-x-spacer" colspan={col.__VT_C_SP__}></td>;
         }
-        if (shouldHideCell(row, col)) {
-            return null;
-        }
         const tdProps = getTDProps(row, col, rowIndex, col.__LF_S__ ?? 0);
+        // shouldHideCell 需响应式：虚拟滚动窗口变化时被合并覆盖的单元格要随之隐藏/恢复
         return (
-            <td {...tdProps}>
-                <Show
-                    when={col.customCell}
-                    fallback={renderDefaultCell(row, col, rowIndex)}
-                >
-                    {renderCustomCell(col.customCell, {
-                        class: 'table-cell-wrapper',
-                        tabindex: '-1',
-                        col,
-                        row,
-                        rowIndex: getAbsoluteRowIndex(rowIndex),
-                        colIndex: col.__LF_S__ ?? 0,
-                        // 使用 getter 保持响应式（对齐 Vue render 函数重新求值行为）
-                        get cellValue() {
-                            return row && row[col.dataIndex];
-                        },
-                        get expanded() {
-                            return row && row.__EXP__;
-                        },
-                        get 'tree-expanded'() {
-                            return row && row.__T_EXP__;
-                        },
-                        // 对齐 Vue：stkFoldIcon 点击由 tbody 委托的 onCellClick 统一处理（避免与直接处理器双重 toggle）
-                        stkFoldIcon: <TriangleIcon />,
-                        stkDragIcon: <DragHandle onDragStart={e => onTrDragStart(e, getAbsoluteRowIndex(rowIndex))} />,
-                    })}
-                </Show>
-            </td>
+            <Show when={!shouldHideCell(row, col)}>
+                <td {...tdProps}>
+                    <Show
+                        when={col.customCell}
+                        fallback={renderDefaultCell(row, col, rowIndex)}
+                    >
+                        {renderCustomCell(col.customCell, {
+                            class: 'table-cell-wrapper',
+                            tabindex: '-1',
+                            col,
+                            row,
+                            rowIndex: getAbsoluteRowIndex(rowIndex),
+                            colIndex: col.__LF_S__ ?? 0,
+                            // 使用 getter 保持响应式（对齐 Vue render 函数重新求值行为）
+                            get cellValue() {
+                                return row && row[col.dataIndex];
+                            },
+                            get expanded() {
+                                return row && row.__EXP__;
+                            },
+                            get 'tree-expanded'() {
+                                return row && row.__T_EXP__;
+                            },
+                            // 对齐 Vue：stkFoldIcon 点击由 tbody 委托的 onCellClick 统一处理（避免与直接处理器双重 toggle）
+                            stkFoldIcon: <TriangleIcon />,
+                            stkDragIcon: <DragHandle onDragStart={e => onTrDragStart(e, getAbsoluteRowIndex(rowIndex))} />,
+                        })}
+                    </Show>
+                </td>
+            </Show>
         );
     }
 

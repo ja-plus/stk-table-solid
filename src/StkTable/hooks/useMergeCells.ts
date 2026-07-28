@@ -1,4 +1,4 @@
-import { createSignal, createEffect, type Accessor } from 'solid-js';
+import { createMemo, createSignal, type Accessor } from 'solid-js';
 import { ColKeyGen, MergeCellsParam, PrivateStkTableColumn, RowActiveOption, RowKeyGen, UniqKey } from '../types';
 import { pureCellKeyGen } from '../utils';
 
@@ -9,123 +9,95 @@ export function useMergeCells(
     colKeyGen: ColKeyGen,
     virtual_dataSourcePart: Accessor<any[]>,
 ) {
-    /**
-     * which cell need be hidden
-     * - key: rowKey
-     * - value: colKey Set
-     */
-    const [hiddenCellMap, setHiddenCellMap] = createSignal<Record<UniqKey, Set<UniqKey>> | null>(null);
-    /**
-     * hover other row and rowspan cell should be highlighted
-     * - key: rowKey
-     * - value: cellKey Set
-     */
-    const [hoverRowMap, setHoverRowMap] = createSignal<Record<UniqKey, Set<string>>>({});
-
     /** hover current row , which rowspan cells should be highlight */
     const [hoverMergedCells, setHoverMergedCells] = createSignal(new Set<string>());
     /** click current row , which rowspan cells should be highlight */
     const [activeMergedCells, setActiveMergedCells] = createSignal(new Set<string>());
 
-    /** column index cache */
-    let colIndexCache: Map<UniqKey, number> | null = null;
-
-    createEffect(() => {
-        // depend on virtual_dataSourcePart and tableHeaderLast
-        virtual_dataSourcePart();
-        tableHeaderLast();
-        setHiddenCellMap(null);
-        setHoverRowMap({});
-        colIndexCache = null;
-    });
-
     /**
-     * abstract the logic of hiding cells
+     * en: Precompute merge layout of visible rows in a memo.
+     * Vue 版在 render 期间惰性填充 map，并用 pre-flush watch 清空重建；
+     * Solid 细粒度渲染在虚拟滚动时不会重跑复用行的单元格，惰性填充会导致
+     * hidden/rowspan/hover 状态过期。这里改为 createMemo 全量重算，
+     * 使可视窗口或列变化时合并布局始终保持一致。
      */
-    function hideCells(rowKey: UniqKey, colKey: UniqKey, colspan: number, isSelfRow = false, mergeCellKey: string) {
+    const mergeState = createMemo(() => {
+        const rows = virtual_dataSourcePart();
         const headers = tableHeaderLast();
         const colKeyGenValue = colKeyGen();
 
-        // use columns cache to avoid repeat findIndex
-        let startIndex = colIndexCache?.get(colKey);
-        if (startIndex === void 0) {
-            startIndex = headers.findIndex(item => colKeyGenValue(item) === colKey);
-            if (startIndex < 0) return;
+        /**
+         * which cell need be hidden
+         * - key: rowKey
+         * - value: colKey Set
+         */
+        let hiddenCellMap: Record<UniqKey, Set<UniqKey>> | null = null;
+        /**
+         * hover other row and rowspan cell should be highlighted
+         * - key: rowKey
+         * - value: cellKey Set
+         */
+        const hoverRowMap: Record<UniqKey, Set<string>> = {};
+        /** merged cellKey -> span info */
+        const spanMap = new Map<string, { rowspan: number; colspan: number }>();
 
-            if (!colIndexCache) colIndexCache = new Map();
-            colIndexCache.set(colKey, startIndex);
-        }
+        for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+            const col = headers[colIndex];
+            if (!col.mergeCells) continue;
+            const colKey = colKeyGenValue(col);
 
-        // Initialize maps if needed
-        const hoverRowMapValue = hoverRowMap();
-        const hiddenCellMapValue = hiddenCellMap();
-        if (!hoverRowMapValue[rowKey]) {
-            hoverRowMapValue[rowKey] = new Set();
-        }
-        let hiddenMap = hiddenCellMapValue;
-        if (!hiddenMap) {
-            hiddenMap = {};
-            setHiddenCellMap(hiddenMap);
-        }
-        if (!hiddenMap[rowKey]) {
-            hiddenMap[rowKey] = new Set();
-        }
+            for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+                const row = rows[rowIndex];
+                if (!row) continue;
+                let { colspan, rowspan } = col.mergeCells({ row, col, rowIndex, colIndex: col.__LF_S__ ?? 0 } as MergeCellsParam<any>) || {};
 
-        const hoverSet = hoverRowMapValue[rowKey];
-        const hiddenSet = hiddenMap[rowKey];
-        const endIndex = Math.min(startIndex + colspan, headers.length);
+                // default colspan and rowspan is 1
+                colspan = colspan || 1;
+                rowspan = rowspan || 1;
+                if (colspan === 1 && rowspan === 1) continue;
 
-        for (let i = startIndex; i < endIndex; i++) {
-            hoverSet.add(mergeCellKey);
+                const mergedCellKey = pureCellKeyGen(rowKeyGen(row), colKey);
+                spanMap.set(mergedCellKey, { rowspan, colspan });
 
-            if (isSelfRow && i === startIndex) {
-                // self row start cell does not need to be hidden
-                continue;
+                if (!hiddenCellMap) hiddenCellMap = {};
+                const colEndIndex = Math.min(colIndex + colspan, headers.length);
+                const rowEndIndex = Math.min(rowIndex + rowspan, rows.length);
+                for (let i = rowIndex; i < rowEndIndex; i++) {
+                    const targetRow = rows[i];
+                    if (!targetRow) continue;
+                    const targetRowKey = rowKeyGen(targetRow);
+                    const hoverSet = hoverRowMap[targetRowKey] || (hoverRowMap[targetRowKey] = new Set());
+                    const hiddenSet = hiddenCellMap[targetRowKey] || (hiddenCellMap[targetRowKey] = new Set());
+                    for (let j = colIndex; j < colEndIndex; j++) {
+                        hoverSet.add(mergedCellKey);
+                        if (i === rowIndex && j === colIndex) {
+                            // merged start cell does not need to be hidden
+                            continue;
+                        }
+                        hiddenSet.add(colKeyGenValue(headers[j]));
+                    }
+                }
             }
-
-            const nextCol = headers[i];
-            if (!nextCol) break;
-
-            const nextColKey = colKeyGenValue(nextCol);
-            hiddenSet.add(nextColKey);
         }
-    }
+        return { hiddenCellMap, hoverRowMap, spanMap };
+    });
+
+    const hiddenCellMap: Accessor<Record<UniqKey, Set<UniqKey>> | null> = () => mergeState().hiddenCellMap;
 
     /**
-     * calculate colspan and rowspan
+     * get colspan and rowspan of a cell (reactive: reads the precomputed merge layout)
      */
     function mergeCellsWrapper(
         row: MergeCellsParam<any>['row'],
         col: MergeCellsParam<any>['col'],
-        rowIndex: MergeCellsParam<any>['rowIndex'],
-        colIndex: MergeCellsParam<any>['colIndex'],
     ): { colspan?: number; rowspan?: number } | undefined {
         if (!col.mergeCells) return;
-
-        let { colspan, rowspan } = col.mergeCells({ row, col, rowIndex, colIndex }) || {};
-
-        // default colspan and rowspan is 1
-        colspan = colspan || 1;
-        rowspan = rowspan || 1;
-
-        if (colspan === 1 && rowspan === 1) return;
-
-        const rowKey = rowKeyGen(row);
-        const colKey = colKeyGen()(col);
-        const mergedCellKey = pureCellKeyGen(rowKey, colKey);
-
-        for (let i = rowIndex; i < rowIndex + rowspan; i++) {
-            const targetRow = virtual_dataSourcePart()[i];
-            if (!targetRow) break;
-            hideCells(rowKeyGen(targetRow), colKey, colspan, i === rowIndex, mergedCellKey);
-        }
-
-        return { colspan, rowspan };
+        return mergeState().spanMap.get(pureCellKeyGen(rowKeyGen(row), colKeyGen()(col)));
     }
 
     const emptySet = new Set<string>();
     function updateHoverMergedCells(rowKey: UniqKey | undefined) {
-        setHoverMergedCells(rowKey === void 0 ? emptySet : hoverRowMap()[rowKey] || emptySet);
+        setHoverMergedCells(rowKey === void 0 ? emptySet : mergeState().hoverRowMap[rowKey] || emptySet);
     }
 
     function updateActiveMergedCells(clear?: boolean, rowKey?: UniqKey) {
@@ -134,7 +106,7 @@ export function useMergeCells(
             setActiveMergedCells(new Set<string>());
             return;
         }
-        setActiveMergedCells((rowKey !== void 0 && hoverRowMap()[rowKey]) || new Set<string>(hoverMergedCells()));
+        setActiveMergedCells((rowKey !== void 0 && mergeState().hoverRowMap[rowKey]) || new Set<string>(hoverMergedCells()));
     }
 
     return [hiddenCellMap, mergeCellsWrapper, hoverMergedCells, updateHoverMergedCells, activeMergedCells, updateActiveMergedCells] as const;
