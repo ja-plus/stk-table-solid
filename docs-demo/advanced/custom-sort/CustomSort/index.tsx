@@ -51,7 +51,7 @@ export default function CustomSortDemo() {
             <button class="btn" onClick={handleSortAsc}>
                 Asc
             </button>
-            <StkTable ref={(i: any) => (stkTableRef = i)} style={{ height: '200px' }} rowKey="key" columns={columns} dataSource={dataSource} />
+            <StkTable ref={(i: any) => (stkTableRef = i)} style="height:200px" rowKey="key" columns={columns} dataSource={dataSource} />
         </div>
     );
 }

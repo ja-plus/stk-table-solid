@@ -49,11 +49,11 @@ export default function CustomScrollbar() {
             `}</style>
             <div class="demo-item">
                 <h4>scrollbar</h4>
-                <StkTable style={{ height: '200px' }} virtual scrollbar columns={columns} dataSource={dataSource} />
+                <StkTable style="height:200px" virtual scrollbar columns={columns} dataSource={dataSource} />
             </div>
             <div class="demo-item">
                 <h4>{`:scrollbar="{ width: 12, height: 12 }"`}</h4>
-                <StkTable style={{ height: '200px' }} virtual scrollbar={{ width: 12, height: 12 }} columns={columns} dataSource={dataSource} />
+                <StkTable style="height:200px" virtual scrollbar={{ width: 12, height: 12 }} columns={columns} dataSource={dataSource} />
             </div>
         </div>
     );

@@ -23,7 +23,7 @@ export default function RowHeight() {
     return (
         <div>
             <CheckItem checked={virtual()} onChange={setVirtual} text={t('virtual')} />
-            <StkTable style={{ height: '200px' }} virtual={virtual()} rowHeight={40} headerRowHeight={50} columns={columns} dataSource={dataSource} />
+            <StkTable style="height:200px" virtual={virtual()} rowHeight={40} headerRowHeight={50} columns={columns} dataSource={dataSource} />
         </div>
     );
 }

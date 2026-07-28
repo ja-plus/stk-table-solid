@@ -36,7 +36,7 @@ export default function ScrollbarStyle() {
                 .scrollbar::-webkit-scrollbar-track { background-color: transparent; border: 1px solid var(--border-color); border-bottom: none; border-right: none; }
                 .scrollbar::-webkit-scrollbar-corner { background-color: transparent; border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); }
             `}</style>
-            <StkTable style={{ height: '200px' }} class="scrollbar" columns={columns} virtual dataSource={dataSource} />
+            <StkTable style="height:200px" class="scrollbar" columns={columns} virtual dataSource={dataSource} />
         </div>
     );
 }

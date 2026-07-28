@@ -42,7 +42,7 @@ export default function CustomBottom() {
                 {t('clearData')}
             </button>
             <StkTable
-                style={{ height: '200px' }}
+                style="height:200px"
                 columns={columns}
                 dataSource={dataSource()}
                 customBottomSlot={

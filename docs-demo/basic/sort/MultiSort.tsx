@@ -82,7 +82,7 @@ export default function MultiSort() {
                 </button>
             </div>
 
-            <StkTable ref={(i: any) => (tableRef = i)} style={{ height: '200px' }} rowKey="key" sortConfig={sortConfig} columns={columns} dataSource={dataSource} />
+            <StkTable ref={(i: any) => (tableRef = i)} style="height:200px" rowKey="key" sortConfig={sortConfig} columns={columns} dataSource={dataSource} />
         </div>
     );
 }

@@ -71,7 +71,8 @@ function CustomDragHandle(props: CustomCellProps<any>) {
 
     return (
         <div
-            draggable
+            // Solid 会把 draggable 简写编译为 draggable=""（无效枚举值），必须显式写 "true"
+            draggable="true"
             class="custom-drag-handle"
             onDragStart={e => handleDragStart(e, getRowIndex(props.row))}
             onDragOver={handleDragOver}

@@ -1,23 +1,16 @@
-import { createSignal, onMount, onCleanup, Show } from 'solid-js';
+import { createSignal } from 'solid-js';
+import ContextMenu from 'ja-contextmenu';
+import type { MenuOption } from 'ja-contextmenu/lib/types/MenuOption';
 import type { AreaSelectionRange, StkTableColumn } from '../../../src/StkTable/index';
 import StkTable from '../../StkTable';
 import { useI18n } from '../../hooks/useI18n/index';
+
+import 'ja-contextmenu/styles/dark.css';
 
 type Row = { id: number; name: string; age: number; city: string; score: number };
 
 export default function RealtimeMergeCells() {
     const { t } = useI18n();
-
-    // 监听 html class 获取暗色主题
-    const [isDark, setIsDark] = createSignal(false);
-    onMount(() => {
-        const html = document.documentElement;
-        const update = () => setIsDark(html.classList.contains('dark'));
-        update();
-        const observer = new MutationObserver(update);
-        observer.observe(html, { attributes: true, attributeFilter: ['class'] });
-        onCleanup(() => observer.disconnect());
-    });
 
     const columns: StkTableColumn<Row>[] = [
         { title: 'ID', dataIndex: 'id', width: 60, mergeCells },
@@ -127,7 +120,7 @@ export default function RealtimeMergeCells() {
         setDataSource(ds.map(r => ({ ...r })));
     }
 
-    // ============ Context Menu ============
+    // ============ Context Menu (ja-contextmenu) ============
     function canMerge() {
         const ranges = selectionRanges();
         if (!ranges.length) return false;
@@ -153,35 +146,28 @@ export default function RealtimeMergeCells() {
         return false;
     }
 
-    const [menuVisible, setMenuVisible] = createSignal(false);
-    const [menuPos, setMenuPos] = createSignal({ x: 0, y: 0 });
-
-    function onRowMenu(e: MouseEvent) {
-        e.preventDefault();
-        setMenuPos({ x: e.clientX, y: e.clientY });
-        setMenuVisible(true);
-    }
-
-    function hideMenu() {
-        setMenuVisible(false);
-    }
-
-    // 点击其他位置/滚动时隐藏菜单；右键表格外部时隐藏（右键表格内部由 onRowMenu 重新定位）
-    onMount(() => {
-        const onClickHide = () => hideMenu();
-        const onScrollHide = () => hideMenu();
-        const onCtxHide = (e: MouseEvent) => {
-            if (!(e.target as HTMLElement)?.closest?.('.stk-table')) hideMenu();
-        };
-        document.addEventListener('click', onClickHide);
-        document.addEventListener('contextmenu', onCtxHide);
-        document.addEventListener('scroll', onScrollHide, true);
-        onCleanup(() => {
-            document.removeEventListener('click', onClickHide);
-            document.removeEventListener('contextmenu', onCtxHide);
-            document.removeEventListener('scroll', onScrollHide, true);
-        });
+    const contextMenu = new ContextMenu({
+        theme: () => (document.documentElement.classList.contains('dark') ? 'dark' : ('' as any)),
     });
+    const menuOption: MenuOption<void> = {
+        items: [
+            {
+                label: () => t('mergeCells'),
+                disabled: () => !canMerge(),
+                onclick: () => mergeSelectedCells(),
+            },
+            {
+                label: () => t('splitCells'),
+                disabled: () => !canSplit(),
+                onclick: () => splitSelectedCells(),
+            },
+        ],
+    };
+    const menu = contextMenu.create(menuOption);
+
+    function onRowMenu(event: MouseEvent) {
+        menu.show(event);
+    }
 
     return (
         <div class="realtime-merge-cells-demo">
@@ -201,32 +187,6 @@ export default function RealtimeMergeCells() {
                     {t('mergedRegions')}: {mergedCount()}
                 </span>
             </div>
-            <Show when={menuVisible()}>
-                <div class="custom-context-menu" classList={{ dark: isDark() }} style={{ left: `${menuPos().x}px`, top: `${menuPos().y}px` }}>
-                    <div
-                        class="menu-item"
-                        classList={{ disabled: !canMerge() }}
-                        onClick={() => {
-                            if (!canMerge()) return;
-                            mergeSelectedCells();
-                            hideMenu();
-                        }}
-                    >
-                        {t('mergeCells')}
-                    </div>
-                    <div
-                        class="menu-item"
-                        classList={{ disabled: !canSplit() }}
-                        onClick={() => {
-                            if (!canSplit()) return;
-                            splitSelectedCells();
-                            hideMenu();
-                        }}
-                    >
-                        {t('splitCells')}
-                    </div>
-                </div>
-            </Show>
             <style>{`
                 .realtime-merge-cells-demo .demo-tip {
                     margin: 0 0 8px;
@@ -237,45 +197,6 @@ export default function RealtimeMergeCells() {
                     margin-top: 8px;
                     font-size: 13px;
                     color: var(--vp-c-text-2, #888);
-                }
-                .custom-context-menu {
-                    position: fixed;
-                    z-index: 9999;
-                    min-width: 120px;
-                    padding: 4px 0;
-                    background: #fff;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 4px;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                }
-                .custom-context-menu.dark {
-                    background: #2c2c34;
-                    border-color: #3f3f49;
-                }
-                .custom-context-menu .menu-item {
-                    padding: 6px 16px;
-                    font-size: 13px;
-                    cursor: pointer;
-                    color: #333;
-                }
-                .custom-context-menu.dark .menu-item {
-                    color: #ddd;
-                }
-                .custom-context-menu .menu-item:hover {
-                    background: #f0f0f0;
-                }
-                .custom-context-menu.dark .menu-item:hover {
-                    background: #3a3a44;
-                }
-                .custom-context-menu .menu-item.disabled {
-                    color: #bbb;
-                    cursor: not-allowed;
-                }
-                .custom-context-menu.dark .menu-item.disabled {
-                    color: #666;
-                }
-                .custom-context-menu .menu-item.disabled:hover {
-                    background: transparent;
                 }
             `}</style>
         </div>

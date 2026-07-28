@@ -24,5 +24,5 @@ export default function SortField() {
         { key: '9', name: 'John Brown', period: '180D', periodNumber: 180 },
         { key: '10', name: 'John Brown', period: '1.5Y', periodNumber: 547 },
     ];
-    return <StkTable style={{ height: 200 }} rowKey="key" columns={columns} dataSource={dataSource} />;
+    return <StkTable style="height:200px" rowKey="key" columns={columns} dataSource={dataSource} />;
 }

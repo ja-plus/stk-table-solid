@@ -5,7 +5,7 @@
 ## 実装アプローチ
 
 1. `areaSelection` 範囲選択機能を有効にし、`onareaselectionchange` イベントを監視して選択範囲を取得
-2. `onrowmenu` イベント（右クリック）を監視し、カスタムコンテキストメニューを表示
+2. `onrowmenu` イベント（右クリック）を監視し、[ja-contextmenu](https://www.npmjs.com/package/ja-contextmenu) でコンテキストメニューを表示
 3. 「セル結合」クリック時に選択範囲を `rowspan`/`colspan` 情報に変換して Map に保存
 4. 列設定の `mergeCells` コールバックが Map から結合情報を読み取って返す
 5. 「セル分割」クリック時に選択範囲内の結合情報を削除

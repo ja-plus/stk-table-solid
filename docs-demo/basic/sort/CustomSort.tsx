@@ -28,5 +28,5 @@ export default function CustomSort() {
         name: `Name ${i}`,
         rate: RATE_ARR[Math.floor(Math.random() * RATE_ARR.length)],
     }));
-    return <StkTable style={{ height: 200 }} rowKey="key" columns={columns} dataSource={dataSource} />;
+    return <StkTable style="height:200px" rowKey="key" columns={columns} dataSource={dataSource} />;
 }

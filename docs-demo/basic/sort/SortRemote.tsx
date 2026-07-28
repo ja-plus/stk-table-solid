@@ -40,5 +40,5 @@ export default function SortRemote() {
         setDataSource(result);
     }
 
-    return <StkTable style={{ height: 200 }} rowKey="key" sortRemote columns={columns} dataSource={dataSource()} onSortChange={handleSortChange} />;
+    return <StkTable style="height:200px" rowKey="key" sortRemote columns={columns} dataSource={dataSource()} onSortChange={handleSortChange} />;
 }

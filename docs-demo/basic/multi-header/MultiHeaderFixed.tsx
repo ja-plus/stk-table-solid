@@ -70,5 +70,5 @@ export default function MultiHeaderFixed() {
         },
     ];
 
-    return <StkTable style={{ height: '200px' }} rowKey="id" fixedColShadow virtual columns={columns} dataSource={dataSource} />;
+    return <StkTable style="height:200px" rowKey="id" fixedColShadow virtual columns={columns} dataSource={dataSource} />;
 }

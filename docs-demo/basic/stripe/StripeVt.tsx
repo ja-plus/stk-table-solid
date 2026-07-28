@@ -17,5 +17,5 @@ export default function StripeVt() {
         address: `London, Park Lane no. ${i}`,
         gender: i % 2 === 0 ? 'male' : 'female',
     }));
-    return <StkTable style={{ height: '200px' }} virtual stripe columns={columns} dataSource={dataSource} />;
+    return <StkTable style="height:200px" virtual stripe columns={columns} dataSource={dataSource} />;
 }

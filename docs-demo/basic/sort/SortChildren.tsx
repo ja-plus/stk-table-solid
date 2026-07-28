@@ -5,7 +5,7 @@ export default function SortChildren() {
     const dataSource = getDataSource();
     return (
         <StkTable
-            style={{ maxHeight: 300 }}
+            style={{ maxHeight: '300px' }}
             treeConfig={{ defaultExpandAll: true }}
             sortConfig={{ sortChildren: true }}
             columns={columns}

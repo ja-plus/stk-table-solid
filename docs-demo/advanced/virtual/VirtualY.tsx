@@ -27,5 +27,5 @@ const dataSource = [
 ];
 
 export default function VirtualY() {
-    return <StkTable style={{ height: '200px' }} virtual columns={columns} dataSource={dataSource} />;
+    return <StkTable style="height:200px" virtual columns={columns} dataSource={dataSource} />;
 }

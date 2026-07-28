@@ -58,7 +58,7 @@ export default function TreeVirtualList() {
             <button class="btn" onClick={updateArea0_1Cell}>
                 update Area0-1 gdp
             </button>
-            <StkTable ref={(i: any) => (stkTableRef = i)} style={{ height: '200px' }} rowKey="area" virtual columns={columns} dataSource={dataSource()} />
+            <StkTable ref={(i: any) => (stkTableRef = i)} style="height:200px" rowKey="area" virtual columns={columns} dataSource={dataSource()} />
         </div>
     );
 }

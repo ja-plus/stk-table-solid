@@ -5,7 +5,7 @@
 ## 实现思路
 
 1. 开启 `areaSelection` 区域选取功能，监听 `onareaselectionchange` 事件获取选区范围
-2. 监听 `onrowmenu` 事件（右键），弹出自定义上下文菜单
+2. 监听 `onrowmenu` 事件（右键），使用 [ja-contextmenu](https://www.npmjs.com/package/ja-contextmenu) 弹出上下文菜单
 3. 点击"合并单元格"时，将选区范围转换为 `rowspan`/`colspan` 信息存储到 Map 中
 4. 列配置的 `mergeCells` 回调从 Map 中读取合并信息并返回
 5. 点击"拆分单元格"时，删除选区范围内的合并信息

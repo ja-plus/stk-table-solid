@@ -62,7 +62,7 @@ export default function ContextMenuDemo() {
     return (
         <StkTable
             ref={(i: any) => (stkTableRef = i)}
-            style={{ height: '200px' }}
+            style="height:200px"
             rowKey="id"
             columns={columns}
             dataSource={dataSource()}

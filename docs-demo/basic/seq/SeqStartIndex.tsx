@@ -17,5 +17,5 @@ export default function SeqStartIndex() {
         address: `Beijing Forbidden City ${index}`,
         gender: index % 2 === 0 ? 'male' : 'female',
     }));
-    return <StkTable style={{ height: 200 }} seqConfig={{ startIndex: 10 }} columns={columns} virtual dataSource={dataSource} />;
+    return <StkTable style="height:200px" seqConfig={{ startIndex: 10 }} columns={columns} virtual dataSource={dataSource} />;
 }

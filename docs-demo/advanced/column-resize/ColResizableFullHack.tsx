@@ -36,7 +36,7 @@ export default function ColResizableFullHack() {
                 columns={columns()}
                 onUpdate:columns={newCols => setColumns(newCols as StkTableColumn<any>[])}
                 rowKey="name"
-                style={{ height: '200px' }}
+                style="height:200px"
                 virtual
                 colResizable={{
                     disabled: col => col.dataIndex === 'op',

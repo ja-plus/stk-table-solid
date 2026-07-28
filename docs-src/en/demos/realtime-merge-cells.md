@@ -5,7 +5,7 @@ Use the `areaSelection` feature to select multiple cells, then right-click to op
 ## Implementation Approach
 
 1. Enable the `areaSelection` feature and listen to the `onareaselectionchange` event to get selection ranges
-2. Listen to the `onrowmenu` event (right-click) to show a custom context menu
+2. Listen to the `onrowmenu` event (right-click) and show a context menu with [ja-contextmenu](https://www.npmjs.com/package/ja-contextmenu)
 3. On "Merge Cells" click, convert the selection range into `rowspan`/`colspan` info stored in a Map
 4. The `mergeCells` callback in column config reads merge info from the Map
 5. On "Split Cells" click, remove merge info within the selection range

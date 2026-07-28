@@ -73,7 +73,7 @@ export default function MultiHeader() {
     return (
         <div>
             <CheckItem checked={virtual()} onChange={setVirtual} text="virtual" />
-            <StkTable style={{ height: '200px' }} rowKey="id" fixedColShadow virtual={virtual()} columns={columns} dataSource={dataSource} />
+            <StkTable style="height:200px" rowKey="id" fixedColShadow virtual={virtual()} columns={columns} dataSource={dataSource} />
         </div>
     );
 }

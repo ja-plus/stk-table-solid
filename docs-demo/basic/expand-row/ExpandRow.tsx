@@ -35,7 +35,7 @@ export default function ExpandRow() {
             <CheckItem checked={stripe()} onChange={setStripe} text={t('stripe')} />
             <StkTable
                 rowKey="id"
-                style={{ height: '200px' }}
+                style="height:200px"
                 virtual={virtual()}
                 stripe={stripe()}
                 expandConfig={{ height: 80 }}

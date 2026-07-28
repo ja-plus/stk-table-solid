@@ -18,5 +18,5 @@ export default function SortEmptyValue() {
         { key: '4', name: 'John Brown', age: null },
         { key: '5', name: 'John Brown', age: 730 },
     ];
-    return <StkTable style={{ height: 200 }} rowKey="key" sortConfig={{ emptyToBottom: true }} columns={columns} dataSource={dataSource} />;
+    return <StkTable style="height:200px" rowKey="key" sortConfig={{ emptyToBottom: true }} columns={columns} dataSource={dataSource} />;
 }

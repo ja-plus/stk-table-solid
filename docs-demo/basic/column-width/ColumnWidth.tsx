@@ -23,7 +23,7 @@ export default function ColumnWidth() {
     return (
         <div>
             <CheckItem checked={virtual()} onChange={setVirtual} text={t('virtual')} />
-            <StkTable style={{ height: '200px' }} virtual={virtual()} columns={columns} dataSource={dataSource} />
+            <StkTable style="height:200px" virtual={virtual()} columns={columns} dataSource={dataSource} />
         </div>
     );
 }

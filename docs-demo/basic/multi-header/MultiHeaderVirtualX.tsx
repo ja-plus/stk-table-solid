@@ -117,7 +117,7 @@ export default function MultiHeaderVirtualX() {
             <CheckItem checked={fixedLeft()} onChange={setFixedLeft} text="fixed-left(Basic)" />
             <CheckItem checked={fixedRight()} onChange={setFixedRight} text="fixed-right(right)" />
             <StkTable
-                style={{ height: '200px' }}
+                style="height:200px"
                 rowKey="id"
                 fixedColShadow
                 virtual={virtual()}

@@ -20,7 +20,7 @@ export default function DefaultSort() {
     ];
     return (
         <StkTable
-            style={{ height: 200 }}
+            style="height:200px"
             rowKey="key"
             sortConfig={{ emptyToBottom: true, defaultSort: { dataIndex: 'age', order: 'asc', sortType: 'number' } }}
             columns={columns}

@@ -35,5 +35,5 @@ export default function FixedVirtual() {
         { title: t('website'), dataIndex: 'website', width: 100 },
     ];
 
-    return <StkTable style={{ height: '200px' }} rowKey="key" virtual virtualX fixedColShadow columns={columns} dataSource={dataSource} />;
+    return <StkTable style="height:200px" rowKey="key" virtual virtualX fixedColShadow columns={columns} dataSource={dataSource} />;
 }

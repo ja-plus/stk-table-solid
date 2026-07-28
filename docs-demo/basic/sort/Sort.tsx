@@ -17,5 +17,5 @@ export default function Sort() {
         age: Math.round(Math.random() * 100),
         gender: i % 2 === 0 ? 'Male' : 'Female',
     }));
-    return <StkTable style={{ height: 200 }} rowKey="key" columns={columns} dataSource={dataSource} />;
+    return <StkTable style="height:200px" rowKey="key" columns={columns} dataSource={dataSource} />;
 }

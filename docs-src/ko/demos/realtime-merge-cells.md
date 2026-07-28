@@ -5,7 +5,7 @@
 ## 구현 방법
 
 1. `areaSelection` 영역 선택 기능을 활성화하고 `onareaselectionchange` 이벤트를 감지하여 선택 범위를 가져옵니다
-2. `onrowmenu` 이벤트(우클릭)를 감지하여 사용자 정의 컨텍스트 메뉴를 표시합니다
+2. `onrowmenu` 이벤트(우클릭)를 감지하여 [ja-contextmenu](https://www.npmjs.com/package/ja-contextmenu)로 컨텍스트 메뉴를 표시합니다
 3. "셀 병합" 클릭 시 선택 범위를 `rowspan`/`colspan` 정보로 변환하여 Map에 저장합니다
 4. 열 설정의 `mergeCells` 콜백이 Map에서 병합 정보를 읽어 반환합니다
 5. "셀 분할" 클릭 시 선택 범위 내의 병합 정보를 삭제합니다

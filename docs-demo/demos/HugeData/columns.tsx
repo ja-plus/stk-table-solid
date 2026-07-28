@@ -1,4 +1,4 @@
-import type { StkTableColumn, CustomHeaderCellProps } from '../../../src/StkTable/index';
+import type { StkTableColumn, CustomCellProps, CustomHeaderCellProps } from '../../../src/StkTable/index';
 import { createFilterCell } from '../../../src/StkTable/index';
 import ExpandCell from './custom-cells/ExpandCell';
 import SourceCell from './custom-cells/SourceCell';
@@ -21,10 +21,12 @@ export const columns: (t: (key: string, defaultValue?: string) => string) => Stk
             align: 'center',
             fixed: 'left',
             customCell: props => {
-                if (props.row._isChildren) {
-                    return <SourceCell {...props} />;
+                // customCell 的入参为 Partial 类型，运行时表格总会传入完整 props，此处断言为完整类型
+                const cellProps = props as CustomCellProps<DataType>;
+                if (cellProps.row._isChildren) {
+                    return <SourceCell {...cellProps} />;
                 }
-                return <ExpandCell {...props} />;
+                return <ExpandCell {...cellProps} />;
             },
         },
         {

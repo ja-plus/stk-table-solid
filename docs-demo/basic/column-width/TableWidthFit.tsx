@@ -26,7 +26,7 @@ export default function TableWidthFit() {
             <style>{`.table-width-fit .stk-table-main { flex: none; }`}</style>
             <CheckItem checked={virtual()} onChange={setVirtual} text={t('virtual')} />
             <div class="table-width-fit">
-                <StkTable style={{ height: '200px' }} virtual={virtual()} columns={columns} dataSource={dataSource} />
+                <StkTable style="height:200px" virtual={virtual()} columns={columns} dataSource={dataSource} />
             </div>
         </div>
     );

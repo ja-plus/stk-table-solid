@@ -116,7 +116,7 @@ export default function Example() {
             rowKey="name"
             columns={columns}
             dataSource={dataSource}
-            style={{ height: '200px' }}
+            style="height:200px"
             theme="dark"
             bordered="h"
             rowHeight={28}

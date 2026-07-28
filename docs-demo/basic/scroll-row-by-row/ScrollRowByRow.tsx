@@ -38,7 +38,7 @@ export default function ScrollRowByRow() {
             <CheckItem checked={rowByRow() !== false} onChange={v => setRowByRow(v ? true : false)} text="scroll-row-by-row" />
             <CheckItem checked={rowByRow() === 'scrollbar'} onChange={onlyScrollbarChange} text="仅拖动滚动条触发|Only drag scrollbar" />
             <StkTable
-                style={{ height: '200px' }}
+                style="height:200px"
                 scrollRowByRow={rowByRow()}
                 virtual
                 rowHeight={30}

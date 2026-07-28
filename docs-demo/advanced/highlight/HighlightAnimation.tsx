@@ -57,7 +57,7 @@ export default function HighlightAnimation() {
             <button class="btn" onClick={addData}>
                 Add data
             </button>
-            <StkTable ref={(i: any) => (stkTableRef = i)} style={{ height: '200px' }} rowKey="id" columns={columns} dataSource={dataSource()} />
+            <StkTable ref={(i: any) => (stkTableRef = i)} style="height:200px" rowKey="id" columns={columns} dataSource={dataSource()} />
         </div>
     );
 }

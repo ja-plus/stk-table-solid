@@ -68,5 +68,5 @@ export default function MultiHeaderAnyFixed() {
         stkTableRef?.scrollTo(0, 100);
     });
 
-    return <StkTable ref={(i: any) => (stkTableRef = i)} style={{ height: '200px' }} rowKey="id" fixedColShadow virtual columns={columns} dataSource={dataSource} />;
+    return <StkTable ref={(i: any) => (stkTableRef = i)} style="height:200px" rowKey="id" fixedColShadow virtual columns={columns} dataSource={dataSource} />;
 }

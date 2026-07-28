@@ -18,7 +18,7 @@ export default function NoDataFull() {
                 <input type="checkbox" checked={noDataFull()} onChange={e => setNoDataFull(e.currentTarget.checked)} />
                 <span>{t('noDataFull')}</span>
             </label>
-            <StkTable style={{ height: '200px' }} noDataFull={noDataFull()} columns={columns} dataSource={[]} />
+            <StkTable style="height:200px" noDataFull={noDataFull()} columns={columns} dataSource={[]} />
         </div>
     );
 }

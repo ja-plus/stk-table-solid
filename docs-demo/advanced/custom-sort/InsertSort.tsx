@@ -86,7 +86,7 @@ export default function InsertSortDemo() {
             <StkTable
                 ref={(i: any) => (stkTableRef = i)}
                 rowKey="id"
-                style={{ height: '200px' }}
+                style="height:200px"
                 maxWidth="max-content"
                 sortRemote
                 columns={columns}
