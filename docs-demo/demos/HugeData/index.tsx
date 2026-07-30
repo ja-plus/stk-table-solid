@@ -65,6 +65,13 @@ export default function HugeData() {
     const [dataSource, setDataSource] = createSignal<DataType[]>([]);
     const [footerData, setFooterData] = createSignal<Record<string, any>[]>([]);
 
+    /** Mock data cost time  */
+    const [mockDataCost, setMockDataCost] = createSignal(0);
+    /** Table render cost time */
+    const [renderCost, setRenderCost] = createSignal(0);
+    /** Table sort cost time */
+    const [sortDataCost, setSortDataCost] = createSignal(0);
+
     let timeoutId = 0;
 
     // computed once with the initial language
@@ -98,6 +105,8 @@ export default function HugeData() {
         const curDate = new Date();
         const curHour = curDate.getHours();
         const curMinute = curDate.getMinutes();
+
+        let timeStart = performance.now();
         const dataSourceTemp = Array.from({ length: dataSize() }).map((_, index) => {
             const data = Object.assign({}, mockDataResult, createData(index)) as any;
             data.bestTime =
@@ -110,10 +119,19 @@ export default function HugeData() {
                 String(Random.integer(0, 999)).padStart(3, '0');
             return data;
         });
+        setMockDataCost(Math.floor(performance.now() - timeStart)); // Mock data cost time
 
+        timeStart = performance.now();
         const sorted = tableSort({ dataIndex: 'bestTime', sorter: true }, 'desc', dataSourceTemp, sortConfig);
+        setSortDataCost(Math.floor(performance.now() - timeStart));
+
         commitDataSource(sorted);
         calculateFootData();
+
+        timeStart = performance.now();
+        setTimeout(() => {
+            setRenderCost(Math.floor(performance.now() - timeStart));
+        }, 0);
     }
 
     function highlightRow(row: DataType) {
@@ -318,6 +336,15 @@ export default function HugeData() {
                     style={{ width: '70px', 'margin-left': '6px' }}
                     onInput={handleDataSizeChange}
                 />
+                <span style={{ 'margin-left': '8px' }}>
+                    {t('mockDataCost')}: {mockDataCost()}ms
+                </span>
+                <span style={{ 'margin-left': '8px' }}>
+                    {t('sortDataCost')}: {sortDataCost()}ms
+                </span>
+                <span style={{ 'margin-left': '8px' }}>
+                    {t('renderCost')}: {renderCost()}ms
+                </span>
             </div>
             <button class="btn" onClick={handleToggleSimulate}>
                 {t('simulateUpdateData')}({isRunning() ? t('stop') : t('start')})
@@ -372,7 +399,7 @@ export default function HugeData() {
                 onSortChange={handleSortChange}
             ></StkTable>
             <style>{`
-                .row { display: flex; }
+                .row { display: flex; flex-wrap: wrap; }
                 .stack .stk-tbody-main tr { transform: translateZ(0); }
                 .blue-cell { color: #4f8df4; }
                 .red-cell { color: #ff2b48; }
