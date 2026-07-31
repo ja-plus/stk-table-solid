@@ -20,11 +20,18 @@ export function useFixedCol<DT extends Record<string, any>>(
     /** 正在被固定的列 */
     const [fixedCols, setFixedCols] = createSignal<StkTableColumn<DT>[]>([]);
 
+    /**
+     * 需要自行绘制左边框的右固定列。
+     * 单元格的左边框由左侧相邻单元格的 border-right 提供，右固定列吸附遮挡内容后两者不再相邻，因此需要自行绘制。
+     */
+    const [fixedBorderLeftCols, setFixedBorderLeftCols] = createSignal<StkTableColumn<DT>[]>([]);
+
     /** 固定列的class */
     const fixedColClassMap = createMemo(() => {
         const colMap = new Map();
         const fixedShadowColsValue = fixedShadowCols();
         const fixedColsValue = fixedCols();
+        const fixedBorderLeftColsValue = fixedBorderLeftCols();
         const colKeyFn = colKeyGen();
         const fixedColShadow = props.fixedColShadow;
         const headers = tableHeaders();
@@ -46,6 +53,9 @@ export function useFixedCol<DT extends Record<string, any>>(
                 }
                 if (showShadow) {
                     classList.push('fixed-cell--shadow');
+                }
+                if (fixed === 'right' && fixedBorderLeftColsValue.includes(col)) {
+                    classList.push('fixed-cell--border-left');
                 }
                 // SolidJS 的 class 必须是字符串（不像 Vue 会自动展平数组），这里用空格连接
                 colMap.set(colKeyFn(col), classList.join(' '));
@@ -117,6 +127,9 @@ export function useFixedCol<DT extends Record<string, any>>(
         if (props.fixedColShadow) {
             setFixedShadowCols(leftShadowCol.concat(rightShadowCol).filter(Boolean) as StkTableColumn<DT>[]);
         }
+
+        // rightShadowCol 是每层最靠左的、已遮挡内容的右固定列，正是需要绘制左边框的列
+        setFixedBorderLeftCols(rightShadowCol.filter(Boolean) as StkTableColumn<DT>[]);
 
         setFixedCols(fixedColsTemp);
     }
