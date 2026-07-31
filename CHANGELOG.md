@@ -3,3 +3,4 @@
   - transform `stk-table-vue` to `solid` version
 * Bugfix:
   - fix: `autoResize` now recalculates fixed columns state (active/shadow) on container resize, not only virtual scroll.
+  - fix: right fixed column not work properly.
