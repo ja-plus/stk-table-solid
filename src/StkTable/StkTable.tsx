@@ -487,10 +487,6 @@ export default function StkTable(rawProps: StkTableProps) {
 
     const [highlightSteps, setHighlightDimRow, setHighlightDimCell] = useHighlight(props, stkTableId, tableContainerAccessor as any);
 
-    if (props.autoResize) {
-        useAutoResize(tableContainerAccessor, initVirtualScroll, props, 200);
-    }
-
     function getRowIndex(row: DT): number {
         const targetKey = rowKeyGen(row);
         return dataSourceCopy().findIndex(item => rowKeyGen(item) === targetKey);
@@ -536,6 +532,19 @@ export default function StkTable(rawProps: StkTableProps) {
         tableHeadersForCalc,
         tableContainerAccessor,
     );
+
+    if (props.autoResize) {
+        useAutoResize(
+            tableContainerAccessor,
+            () => {
+                initVirtualScroll();
+                // 容器宽度变化后，需重新计算固定列状态
+                updateFixedShadow();
+            },
+            props,
+            200,
+        );
+    }
 
     const [colResizeOn, isColResizing, onThResizeMouseDown] = useColResize(
         props,
