@@ -1,6 +1,6 @@
 <p align="center">
     <a href="https://ja-plus.github.io/stk-table-solid/">
-        <img src="./docs-src/public/assets/logo.svg" alt="stk-table-solid logo" width="152">
+        <img src="https://raw.githubusercontent.com/ja-plus/stk-table-solid/main/docs-src/public/assets/logo.svg" alt="stk-table-solid logo" width="152">
     </a>
     <h3 align='center'>Stk Table Solid</h3>
     <p align="center">
