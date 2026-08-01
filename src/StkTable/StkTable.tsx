@@ -769,6 +769,16 @@ export default function StkTable(rawProps: StkTableProps) {
         };
     });
 
+    /**
+     * fixed 模式下 colgroup 中单个 col 的样式。
+     * 仅取叶子列的 width（与 cellStyleMap 中 --cw 保持一致）；未设置 width 的列不声明宽度，
+     * 由 table-layout:fixed 将剩余空间平分，符合"一列固定、其余列平分"的预期。
+     */
+    function getColGroupColStyle(col: PrivateStkTableColumn<DT>): string | undefined {
+        const width = transformWidthToStr(col.width);
+        return width ? `width:${width}` : undefined;
+    }
+
     function getAbsoluteRowIndex(rowIndex: number) {
         return rowIndex + virtualScroll().startIndex;
     }
@@ -1388,6 +1398,16 @@ export default function StkTable(rawProps: StkTableProps) {
                     onContextMenu={onRowMenu}
                     onMouseOver={onTrMouseOver}
                 >
+                    {/* table-layout:fixed 下浏览器仅依据首行/colgroup 决定列宽，
+                        多级表头时子列宽度位于非首行会被忽略。
+                        故固定模式下通过 colgroup 显式声明每个叶子列宽度，保证子列 width 生效。 */}
+                    <Show when={props.fixedMode && !virtualX_on()}>
+                        <colgroup>
+                            <For each={tableHeaderLast()}>
+                                {col => <col style={getColGroupColStyle(col)} />}
+                            </For>
+                        </colgroup>
+                    </Show>
                     <Show when={!props.headless}>
                         <thead>
                             <For each={virtualX_on() ? virtualX_tableHeaders() : tableHeaders()}>
