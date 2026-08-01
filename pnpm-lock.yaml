@@ -38,8 +38,8 @@ devDependencies:
     specifier: ^1.6.3
     version: 1.6.4(@algolia/client-search@5.56.0)(less@4.8.0)(search-insights@2.17.3)(typescript@5.9.3)
   vitepress-demo-plugin:
-    specifier: file:./vitepress-demo-plugin/packages/plugin
-    version: file:vitepress-demo-plugin/packages/plugin(shiki@2.5.0)(vitepress@1.6.4)(vue@3.5.40)
+    specifier: 1.8.0
+    version: 1.8.0(shiki@2.5.0)(vitepress@1.6.4)(vue@3.5.40)
 
 packages:
 
@@ -2430,6 +2430,18 @@ packages:
       vite: 6.4.3(less@4.8.0)
     dev: true
 
+  /vitepress-demo-plugin@1.8.0(shiki@2.5.0)(vitepress@1.6.4)(vue@3.5.40):
+    resolution: {integrity: sha512-HtEsYPRtKTJNbC1kE+LmA8sL+nwKFNc9lkox8XtTS97LKIbr/GaXhlA+ocANc7TWhRsDEfNiCjiVm++CwSxaGg==}
+    peerDependencies:
+      shiki: '*'
+      vitepress: '*'
+      vue: ^3.2.0
+    dependencies:
+      shiki: 2.5.0
+      vitepress: 1.6.4(@algolia/client-search@5.56.0)(less@4.8.0)(search-insights@2.17.3)(typescript@5.9.3)
+      vue: 3.5.40(typescript@5.9.3)
+    dev: true
+
   /vitepress@1.6.4(@algolia/client-search@5.56.0)(less@4.8.0)(search-insights@2.17.3)(typescript@5.9.3):
     resolution: {integrity: sha512-+2ym1/+0VVrbhNyRoFFesVvBvHAVMZMK0rw60E3X/5349M1GuVdKeazuksqopEdvkKwKGs21Q729jX81/bkBJg==}
     hasBin: true
@@ -2511,18 +2523,4 @@ packages:
 
   /zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
-    dev: true
-
-  file:vitepress-demo-plugin/packages/plugin(shiki@2.5.0)(vitepress@1.6.4)(vue@3.5.40):
-    resolution: {directory: vitepress-demo-plugin/packages/plugin, type: directory}
-    id: file:vitepress-demo-plugin/packages/plugin
-    name: vitepress-demo-plugin
-    peerDependencies:
-      shiki: '*'
-      vitepress: '*'
-      vue: ^3.2.0
-    dependencies:
-      shiki: 2.5.0
-      vitepress: 1.6.4(@algolia/client-search@5.56.0)(less@4.8.0)(search-insights@2.17.3)(typescript@5.9.3)
-      vue: 3.5.40(typescript@5.9.3)
     dev: true

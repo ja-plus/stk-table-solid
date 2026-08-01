@@ -1,1 +1,0 @@
-"use strict";Object.defineProperties(exports,{__esModule:{value:!0},[Symbol.toStringTag]:{value:"Module"}});const e=require("./placeholder.605dd41a.cjs");require("vue");require("shiki");exports.VitepressDemoBox=e._sfc_main;exports.VitepressDemoPlaceholder=e.placeholder;
