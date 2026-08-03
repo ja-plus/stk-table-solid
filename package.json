@@ -1,6 +1,6 @@
 {
   "name": "stk-table-solid",
-  "version": "1.0.0-beta.3",
+  "version": "1.0.0-beta.4",
   "description": "High performance realtime virtual table for SolidJS",
   "homepage": "https://ja-plus.github.io/stk-table-solid/",
   "repository": {
