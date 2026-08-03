@@ -10,9 +10,30 @@ export default function TreeVirtualList() {
 
     const columns: StkTableColumn<any>[] = [
         { type: 'tree-node', title: t('area'), dataIndex: 'area', width: 200 },
-        { title: t('gdp'), dataIndex: 'gdp', align: 'right', width: 100, sorter: true, sortType: 'number' },
-        { title: t('population'), dataIndex: 'population', align: 'right', width: 100, sorter: true, sortType: 'number' },
-        { title: t('gdpPerCapita'), dataIndex: 'gdpPerCapita', align: 'right', width: 200, sorter: true, sortType: 'number' },
+        {
+            title: t('gdp'),
+            dataIndex: 'gdp',
+            align: 'right',
+            width: 100,
+            sorter: true,
+            sortType: 'number',
+        },
+        {
+            title: t('population'),
+            dataIndex: 'population',
+            align: 'right',
+            width: 100,
+            sorter: true,
+            sortType: 'number',
+        },
+        {
+            title: t('gdpPerCapita'),
+            dataIndex: 'gdpPerCapita',
+            align: 'right',
+            width: 200,
+            sorter: true,
+            sortType: 'number',
+        },
     ];
     const [dataSource, setDataSource] = createSignal<any[]>(getDataSource2());
 
@@ -39,6 +60,10 @@ export default function TreeVirtualList() {
         stkTableRef?.setHighlightDimRow([area1_0.area]);
     }
 
+    function toggleArea0() {
+        stkTableRef?.setTreeExpand(['Area0']);
+    }
+
     function updateArea0_1Cell() {
         const dataSourceTemp = dataSource().slice();
         const area0_1 = dataSourceTemp[0].children[1];
@@ -57,6 +82,9 @@ export default function TreeVirtualList() {
             </button>
             <button class="btn" onClick={updateArea0_1Cell}>
                 update Area0-1 gdp
+            </button>
+            <button class="btn" onClick={toggleArea0}>
+                Toggle Area0
             </button>
             <StkTable ref={(i: any) => (stkTableRef = i)} style="height:200px" rowKey="area" virtual columns={columns} dataSource={dataSource()} />
         </div>
