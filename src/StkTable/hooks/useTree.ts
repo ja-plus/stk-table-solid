@@ -3,6 +3,28 @@ import { PrivateRowDT, RowKeyGen, TreeConfig, UniqKey } from '../types';
 
 type DT = PrivateRowDT & { children?: DT[] };
 
+type SetTreeExpandOption = {
+    /**
+     * 是否展开
+     * en: Whether to expand
+     * @default false
+     */
+    expand?: boolean;
+    /**
+     * 是否展开所有子节点
+     * en: Whether to expand all child nodes
+     * @default false
+     * @version 1.0.4
+     */
+    all?: boolean;
+    /**
+     * 展开到第几层
+     * en: Expand to the nth level
+     * @version 1.0.4
+     */
+    level?: number;
+};
+
 export type TreeEmits = {
     onToggleTreeExpand?: (data: { expanded: boolean; row: DT; col: any }) => void;
 };
@@ -30,14 +52,14 @@ export function useTree(
      * @param option.expand expand or collapse
      * @param option.silent if set true, not emit `toggle-tree-expand`, default:false
      */
-    function privateSetTreeExpand(row: (UniqKey | DT) | (UniqKey | DT)[], option: { expand?: boolean; col?: any; isClick: boolean }) {
+    function privateSetTreeExpand(row: (UniqKey | DT) | (UniqKey | DT)[], option: SetTreeExpandOption & { col?: any; isClick: boolean }) {
         const rowKeyOrRowArr: (UniqKey | DT)[] = Array.isArray(row) ? row : [row];
 
         const tempData = dataSourceCopy().slice();
         for (let i = 0; i < rowKeyOrRowArr.length; i++) {
             const rowKeyOrRow = rowKeyOrRowArr[i];
             let rowKey: UniqKey;
-            if (typeof rowKeyOrRow === 'string') {
+            if (typeof rowKeyOrRow === 'string' || typeof rowKeyOrRow === 'number') {
                 rowKey = rowKeyOrRow;
             } else {
                 rowKey = rowKeyGen(rowKeyOrRow);
@@ -50,13 +72,26 @@ export function useTree(
 
             const row = tempData[index];
             const level = row.__T_LV__ || 0;
+            const wasExpanded = Boolean(row.__T_EXP__);
             let expanded = option?.expand;
             if (expanded === void 0) {
                 expanded = !row.__T_EXP__;
             }
+            if (option.all || option.level !== void 0) {
+                const targetLevel = option.all ? Infinity : option.level || 0;
+                setDescendantsToLevel(row, level + 1, targetLevel, expanded);
+            }
             if (expanded) {
-                const children = expandNode(row, level);
-                tempData.splice(index + 1, 0, ...children);
+                if (wasExpanded) {
+                    // already expanded, rebuild the flattened subtree so newly expanded
+                    // descendants are inserted into the visible data source
+                    const deleteCount = foldNode(index, tempData, level);
+                    const children = expandNode(row, level);
+                    tempData.splice(index + 1, deleteCount, ...children);
+                } else {
+                    const children = expandNode(row, level);
+                    tempData.splice(index + 1, 0, ...children);
+                }
             } else {
                 // delete all child nodes from i
                 const deleteCount = foldNode(index, tempData, level);
@@ -74,7 +109,7 @@ export function useTree(
         onDataSourceChange();
     }
 
-    function setTreeExpand(row: (UniqKey | DT) | (UniqKey | DT)[], option?: { expand?: boolean }) {
+    function setTreeExpand(row: (UniqKey | DT) | (UniqKey | DT)[], option?: SetTreeExpandOption) {
         privateSetTreeExpand(row, { ...option, isClick: false });
     }
 
@@ -121,6 +156,18 @@ export function useTree(
         const result = recursionFlat(data, 0);
         isFirstLoad = false;
         return result;
+    }
+
+    /**
+     * 递归设置目标节点后代到指定层级的展开/折叠状态
+     * en: Recursively set expand/collapse state for descendants up to the target level
+     */
+    function setDescendantsToLevel(row: DT, currentLevel: number, targetLevel: number, expanded: boolean) {
+        if (!row.children || currentLevel > targetLevel) return;
+        for (const child of row.children) {
+            setNodeExpanded(child, expanded, currentLevel, row);
+            setDescendantsToLevel(child, currentLevel + 1, targetLevel, expanded);
+        }
     }
 
     function expandNode(row: DT, level: number) {

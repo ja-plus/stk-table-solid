@@ -1,4 +1,11 @@
 # 1.0.0
+
+## 1.0.4
+* Feature
+  - feat: `setTreeExpand` add `all` option, expand/collapse all descendants of a node.
+  - feat: `setTreeExpand` add `level` option, expand/collapse descendants to a specific level.
+* Bugfix:
+  - fix: `setTreeExpand` & `setRowExpand` not working when `rowKey` is a `number`, now correctly handles both `string` and `number` types.
 * Feature
   - transform `stk-table-vue` to `solid` version
 * Bugfix:

@@ -31,9 +31,9 @@ export function useRowExpand(
      * @param data { col?: StkTableColumn<DT> }
      * @param data.silent if set true, not emit `toggle-row-expand`, default:false
      */
-    function setRowExpand(rowKeyOrRow: string | undefined | DT, expand?: boolean | null, data?: { col?: StkTableColumn<DT>; silent?: boolean }) {
+    function setRowExpand(rowKeyOrRow: string | number | undefined | DT, expand?: boolean | null, data?: { col?: StkTableColumn<DT>; silent?: boolean }) {
         let rowKey: UniqKey;
-        if (typeof rowKeyOrRow === 'string') {
+        if (typeof rowKeyOrRow === 'string' || typeof rowKeyOrRow === 'number') {
             rowKey = rowKeyOrRow;
         } else {
             rowKey = rowKeyGen(rowKeyOrRow);
