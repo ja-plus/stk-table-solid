@@ -31,6 +31,12 @@ export const getDataSource = () => [
 
 ## Default Expanded Nodes
 
+::: warning 
+Expansions configured via `props.treeConfig` only take effect when the table is first rendered.
+
+For async data, please use the [expose.setTreeExpand()](/en/main/api/expose.html#settreeexpand) function to control.
+:::
+
 ### Expand All
 `treeConfig.defaultExpandAll = true`
 
@@ -44,7 +50,24 @@ export const getDataSource = () => [
 ### Expand Specific Nodes
 `treeConfig.defaultExpandedKeys = ['Asia', 'China', 'Zhejiang']`
 
+The `Toggle China` button below uses [setTreeExpand()](/en/main/api/expose.html#settreeexpand) to control the expand/collapse of the `China` row.
+
 <demo solid="basic/tree/TreeDefaultExpandKeys.tsx" github="https://github.com/ja-plus/stk-table-solid/tree/master/docs-demo/basic/tree/TreeDefaultExpandKeys.tsx"></demo>
+
+### Manually Expand Nodes
+
+Use the [setTreeExpand](/en/main/api/expose.html#settreeexpand) method to manually control the expand/collapse of nodes.
+
+The example below demonstrates different parameter usages:
+- `Toggle All`: Toggle the expand/collapse state of all root nodes (pass the entire `dataSource` array, `{ all: true }`)
+- `Collapse All`: Collapse all root nodes (pass the entire `dataSource` array, `{ all: true, expand: false }`)
+- `Toggle Asia`: Toggle the expand/collapse state of the Asia node
+- `Expand All Asia`: Expand all descendants of Asia (`{ expand: true, all: true }`)
+- `Collapse All Asia`: Collapse all descendants of Asia (`{ expand: false, all: true }`)
+- `Expand Asia to Level 2`: Expand Asia to level 2 (`{ expand: true, level: 2 }`)
+- `Collapse Asia to Level 1`: Collapse Asia to level 1 (`{ expand: false, level: 1 }`)
+
+<demo solid="basic/tree/TreeSetExpand.tsx" github="https://github.com/ja-plus/stk-table-solid/tree/master/docs-demo/basic/tree/TreeSetExpand.tsx"></demo>
 
 
 ## Virtual List

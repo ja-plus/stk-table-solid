@@ -31,6 +31,12 @@ export const getDataSource = () => [
 
 ## デフォルト展開ノード
 
+::: warning 
+`props.treeConfig` で設定された展開は、テーブルが最初にレンダリングされるときのみ有効です。
+
+非同期データの場合は、[expose.setTreeExpand()](/ja/main/api/expose.html#settreeexpand) 関数を使用して制御してください。
+:::
+
 ### すべて展開
 `treeConfig.defaultExpandAll = true`
 
@@ -44,7 +50,24 @@ export const getDataSource = () => [
 ### 特定ノードを展開
 `treeConfig.defaultExpandedKeys = ['アジア', '中国', '浙江']`
 
+下の `Toggle China` ボタンは、[setTreeExpand()](/ja/main/api/expose.html#settreeexpand) を使用して `China` 行の展開/折りたたみを制御します。
+
 <demo solid="basic/tree/TreeDefaultExpandKeys.tsx" github="https://github.com/ja-plus/stk-table-solid/tree/master/docs-demo/basic/tree/TreeDefaultExpandKeys.tsx"></demo>
+
+### 手動でノードを展開
+
+[setTreeExpand](/ja/main/api/expose.html#settreeexpand) メソッドを使用して、ノードの展開/折りたたみを手動で制御します。
+
+以下の例は、さまざまなパラメータの使用方法を示しています：
+- `Toggle All`：すべてのルートノードの展開/折りたたみ状態を切り替えます（`dataSource` 配列全体を渡す、`{ all: true }`）
+- `Collapse All`：すべてのルートノードを折りたたみます（`dataSource` 配列全体を渡す、`{ all: true, expand: false }`）
+- `Toggle Asia`：Asia ノードの展開/折りたたみ状態を切り替えます
+- `Expand All Asia`：Asia のすべての子孫ノードを展開します（`{ expand: true, all: true }`）
+- `Collapse All Asia`：Asia のすべての子孫ノードを折りたたみます（`{ expand: false, all: true }`）
+- `Expand Asia to Level 2`：Asia をレベル 2 まで展開します（`{ expand: true, level: 2 }`）
+- `Collapse Asia to Level 1`：Asia をレベル 1 まで折りたたみます（`{ expand: false, level: 1 }`）
+
+<demo solid="basic/tree/TreeSetExpand.tsx" github="https://github.com/ja-plus/stk-table-solid/tree/master/docs-demo/basic/tree/TreeSetExpand.tsx"></demo>
 
 
 ## 仮想リスト

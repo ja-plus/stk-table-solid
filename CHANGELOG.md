@@ -16,3 +16,4 @@
 * Docs:
   - docs: update tree demos to demonstrate `setTreeExpand` method with toggle buttons.
   - docs: update PanelTree demo to show multi-level tree with level-based logic and column resizing.
+  - docs: sync tree documentation from `stk-table-vue`, add `TreeSetExpand` demo and `setTreeExpand` API docs.
