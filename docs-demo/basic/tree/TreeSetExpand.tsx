@@ -28,6 +28,12 @@ export default function TreeSetExpand() {
     function handleCollapseToLevel1() {
         tableRef?.setTreeExpand(['Asia'], { expand: false, level: 1 });
     }
+    function handleExpandZhejiangParents() {
+        tableRef?.setTreeExpand(['Zhejiang'], { expand: true, parents: true });
+    }
+    function handleCollapseZhejiangParents() {
+        tableRef?.setTreeExpand(['Zhejiang'], { expand: false, parents: true });
+    }
 
     return (
         <>
@@ -52,6 +58,12 @@ export default function TreeSetExpand() {
                 </button>
                 <button class="btn" onClick={handleCollapseToLevel1}>
                     Collapse Asia to Level 1
+                </button>
+                <button class="btn" onClick={handleExpandZhejiangParents}>
+                    Expand Parents of Zhejiang
+                </button>
+                <button class="btn" onClick={handleCollapseZhejiangParents}>
+                    Collapse Parents of Zhejiang
                 </button>
             </div>
             <StkTable
