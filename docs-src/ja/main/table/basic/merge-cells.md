@@ -21,6 +21,13 @@ function mergeCells(data: {
 ## 列マージ
 <demo solid="basic/merge-cells/MergeCellsCol.tsx" github="https://github.com/ja-plus/stk-table-solid/tree/master/docs-demo/basic/merge-cells/MergeCellsCol.tsx"></demo>
 
+### 列マージ仮想リスト <Badge type="tip" text="^1.1.0" />
+<demo solid="basic/merge-cells/MergeCellsColVirtual/index.tsx" github="https://github.com/ja-plus/stk-table-solid/tree/master/docs-demo/basic/merge-cells/MergeCellsColVirtual/index.tsx"></demo>
+
+::: tip
+横方向仮想リストモードでは、マージセル（colspan）のアンカー列が可視エリア外にスクロールアウトした場合、可視列範囲を自動的に拡張し、マージセルの完全なレンダリングを保証します。
+:::
+
 ## 行マージ
 <demo solid="basic/merge-cells/MergeCellsRow.tsx" github="https://github.com/ja-plus/stk-table-solid/tree/master/docs-demo/basic/merge-cells/MergeCellsRow.tsx"></demo>
 
@@ -50,9 +57,14 @@ function mergeCells({ row, col }: { row: any, col: StkTableColumn<any> }) {
 :::
 ::: warning 注意
 rowspanが非常に大きい場合（例如：1000行）、マージセルはそれでもカバーするすべての行をレンダリングしますTherefore, rowspan is not recommended to be very large.
-
-この機能はまだ **横方向仮想リスト** をサポートしていません。
 :::
 
 #### 不規則マージ
 <demo solid="basic/merge-cells/MergeCellsRowVirtual/Special.tsx" github="https://github.com/ja-plus/stk-table-solid/tree/master/docs-demo/basic/merge-cells/MergeCellsRowVirtual/Special.tsx"></demo>
+
+## 行・列マージ <Badge type="tip" text="^1.1.0" />
+行マージ（`rowspan`）と列マージ（`colspan`）は同時に使用でき、`virtual` と `virtual-x` の仮想スクロールにも対応しています。
+<demo solid="basic/merge-cells/MergeCellsRowColVirtual/index.tsx" github="https://github.com/ja-plus/stk-table-solid/tree/master/docs-demo/basic/merge-cells/MergeCellsRowColVirtual/index.tsx"></demo>
+
+## リアルタイムセル結合
+ユーザー操作（範囲選択 + 右クリックメニュー）でセルを動的に結合/分割したい場合は、[リアルタイムセル結合](/ja/demos/realtime-merge-cells)をご参照ください。

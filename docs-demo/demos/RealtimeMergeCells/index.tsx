@@ -18,6 +18,15 @@ export default function RealtimeMergeCells() {
         { title: t('age'), dataIndex: 'age', width: 100, mergeCells },
         { title: t('city'), dataIndex: 'city', width: 120, mergeCells },
         { title: t('score'), dataIndex: 'score', width: 100, mergeCells },
+        ...new Array(20).fill(0).map(
+            (_, i) =>
+                ({
+                    title: `Column ${i}`,
+                    dataIndex: `column-${i}` as any,
+                    width: 100,
+                    mergeCells,
+                }) as StkTableColumn<Row>,
+        ),
     ];
 
     const [dataSource, setDataSource] = createSignal<Row[]>(
@@ -176,6 +185,7 @@ export default function RealtimeMergeCells() {
                 style={{ height: '400px' }}
                 rowKey="id"
                 virtual
+                virtualX
                 columns={columns}
                 dataSource={dataSource()}
                 areaSelection={{ enabled: true }}
